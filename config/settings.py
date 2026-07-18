@@ -1,0 +1,7 @@
+APP_NAME = "Andy Scanner"
+VERSION = "0.2.0"
+
+DEFAULT_MARKET = "US30"
+DEFAULT_TIMEFRAME = "M5"
+
+DEVELOPER = "Andrew Kyalo"
