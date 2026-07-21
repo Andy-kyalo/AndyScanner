@@ -1,12 +1,38 @@
-# Python cache
+# ==========================================
+# Andy Scanner
+# Ignore generated files
+# ==========================================
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# SQLite Database
+database/*.db
+database/*.sqlite3
 
 # Logs
-logs/
+logs/*.log
 
-# Environment variables
+# Environment Variables
 .env
+.env.*
 
-# Temporary files
-*.tmp
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+
+# Build
+build/
+dist/
+*.egg-info/
