@@ -1,3 +1,5 @@
+
+
 """
 printer.py
 
@@ -14,6 +16,7 @@ Project: Andy Scanner
 def print_analysis(analyzer):
 
     print(f"Total Candles: {len(analyzer.candles)}")
+
     print()
 
     print("========== Analysis ==========")

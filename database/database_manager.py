@@ -1,7 +1,7 @@
 """
 database_manager.py
 
-Handles database connections and initialization
+Handles database connections and database operations
 for Andy Scanner.
 
 Author: Andrew Kyalo
@@ -14,7 +14,7 @@ from datetime import datetime
 
 class DatabaseManager:
     """
-    Handles all database operations for Andy Scanner.
+    Handles all SQLite database operations.
     """
 
     def __init__(self, database_path="database/scanner.db"):
@@ -22,52 +22,45 @@ class DatabaseManager:
         self.connection = None
 
     # ==========================================================
-    # CONTEXT MANAGER SUPPORT
+    # Context Manager
     # ==========================================================
 
     def __enter__(self):
-        """
-        Automatically connect and initialize database.
-        """
+        """Open database connection automatically."""
         self.connect()
         self.initialize_database()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Automatically close database connection.
-        """
+        """Close database connection automatically."""
         self.close()
 
     # ==========================================================
-    # DATABASE CONNECTION
+    # Connection Management
     # ==========================================================
 
     def connect(self):
         """
-        Open SQLite database connection.
+        Open SQLite connection.
         """
 
         if self.connection is None:
-            self.connection = sqlite3.connect(
-                self.database_path
-            )
+            self.connection = sqlite3.connect(self.database_path)
+            self.connection.row_factory = sqlite3.Row
 
         return self.connection
 
-
     def close(self):
         """
-        Close database connection safely.
+        Close SQLite connection safely.
         """
 
-        if self.connection:
+        if self.connection is not None:
             self.connection.close()
             self.connection = None
 
-
     # ==========================================================
-    # DATABASE INITIALIZATION
+    # Database Initialization
     # ==========================================================
 
     def initialize_database(self):
@@ -77,54 +70,37 @@ class DatabaseManager:
 
         cursor = self.connection.cursor()
 
-
-        # Store complete market scans
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS scans (
 
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             market TEXT NOT NULL,
-
             timeframe TEXT NOT NULL,
-
             scan_time TEXT NOT NULL,
-
             trend TEXT,
-
             signal TEXT,
-
             confidence INTEGER
 
         )
         """)
 
-
-        # Store generated trading signals
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS signals (
 
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             market TEXT NOT NULL,
-
             timeframe TEXT NOT NULL,
-
             direction TEXT NOT NULL,
-
             confidence INTEGER NOT NULL,
-
             created_at TEXT NOT NULL
 
         )
         """)
 
-
         self.connection.commit()
 
-
     # ==========================================================
-    # SAVE OPERATIONS
+    # Save Operations
     # ==========================================================
 
     def save_scan(
@@ -133,7 +109,7 @@ class DatabaseManager:
         timeframe,
         trend,
         signal,
-        confidence
+        confidence,
     ):
         """
         Save completed market scan.
@@ -141,42 +117,29 @@ class DatabaseManager:
 
         cursor = self.connection.cursor()
 
-
-        cursor.execute("""
-        INSERT INTO scans (
-
-            market,
-            timeframe,
-            scan_time,
-            trend,
-            signal,
-            confidence
-
+        cursor.execute(
+            """
+            INSERT INTO scans (
+                market,
+                timeframe,
+                scan_time,
+                trend,
+                signal,
+                confidence
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                market,
+                timeframe,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                trend,
+                signal,
+                confidence,
+            ),
         )
 
-        VALUES (?, ?, ?, ?, ?, ?)
-
-        """, (
-
-            market,
-
-            timeframe,
-
-            datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),
-
-            trend,
-
-            signal,
-
-            confidence
-        ))
-
-
         self.connection.commit()
-
-
 
     def save_signal(self, signal):
         """
@@ -185,257 +148,159 @@ class DatabaseManager:
 
         cursor = self.connection.cursor()
 
-
-        cursor.execute("""
-        INSERT INTO signals (
-
-            market,
-            timeframe,
-            direction,
-            confidence,
-            created_at
-
-        )
-
-        VALUES (?, ?, ?, ?, ?)
-
-        """, (
-
-            signal.market,
-
-            signal.timeframe,
-
-            signal.direction,
-
-            signal.confidence,
-
-            datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
+        cursor.execute(
+            """
+            INSERT INTO signals (
+                market,
+                timeframe,
+                direction,
+                confidence,
+                created_at
             )
-
-        ))
-
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                signal.market,
+                signal.timeframe,
+                signal.direction,
+                signal.confidence,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            ),
+        )
 
         self.connection.commit()
 
-
+    # ==========================================================
+    # Validation
+    # ==========================================================
 
     def scan_exists(
         self,
         market,
         timeframe,
-        scan_time
+        scan_time,
     ):
         """
-        Check whether scan already exists.
-
-        Returns:
-            True  - if scan exists
-            False - if scan does not exist
+        Check whether a scan already exists.
         """
 
         cursor = self.connection.cursor()
 
-
-        cursor.execute("""
-        SELECT id
-
-        FROM scans
-
-        WHERE market = ?
-
-        AND timeframe = ?
-
-        AND scan_time = ?
-
-        LIMIT 1
-
-        """, (
-
-            market,
-
-            timeframe,
-
-            scan_time
-
-        ))
-
+        cursor.execute(
+            """
+            SELECT id
+            FROM scans
+            WHERE market = ?
+            AND timeframe = ?
+            AND scan_time = ?
+            LIMIT 1
+            """,
+            (
+                market,
+                timeframe,
+                scan_time,
+            ),
+        )
 
         return cursor.fetchone() is not None
 
-
-
     # ==========================================================
-    # RETRIEVE OPERATIONS
+    # Retrieval
     # ==========================================================
-
 
     def get_latest_scan(self):
         """
-        Return latest market scan.
+        Return latest saved scan.
         """
 
         cursor = self.connection.cursor()
 
-
-        cursor.execute("""
-        SELECT
-
-            id,
-
-            market,
-
-            timeframe,
-
-            scan_time,
-
-            trend,
-
-            signal,
-
-            confidence
-
-        FROM scans
-
-        ORDER BY id DESC
-
-        LIMIT 1
-
-        """)
-
+        cursor.execute(
+            """
+            SELECT
+                id,
+                market,
+                timeframe,
+                scan_time,
+                trend,
+                signal,
+                confidence
+            FROM scans
+            ORDER BY id DESC
+            LIMIT 1
+            """
+        )
 
         return cursor.fetchone()
 
-
-
     def get_all_scans(self):
         """
-        Return all saved scans.
+        Return scan history.
         """
 
         cursor = self.connection.cursor()
 
-
-        cursor.execute("""
-        SELECT
-
-            id,
-
-            market,
-
-            timeframe,
-
-            scan_time,
-
-            trend,
-
-            signal,
-
-            confidence
-
-        FROM scans
-
-        ORDER BY id DESC
-
-        """)
-
+        cursor.execute(
+            """
+            SELECT
+                id,
+                market,
+                timeframe,
+                scan_time,
+                trend,
+                signal,
+                confidence
+            FROM scans
+            ORDER BY id DESC
+            """
+        )
 
         return cursor.fetchall()
 
-
-
     # ==========================================================
-    # STATISTICS
+    # Statistics
     # ==========================================================
-
 
     def get_database_statistics(self):
         """
-        Return database performance statistics.
+        Return database statistics.
         """
 
         cursor = self.connection.cursor()
 
-
         statistics = {}
 
+        cursor.execute("SELECT COUNT(*) FROM scans")
+        statistics["total_scans"] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM signals")
+        statistics["total_signals"] = cursor.fetchone()[0]
 
         cursor.execute(
-            "SELECT COUNT(*) FROM scans"
+            "SELECT COUNT(*) FROM signals WHERE direction='BUY'"
         )
-
-        statistics["total_scans"] = (
-            cursor.fetchone()[0]
-        )
-
+        statistics["buy_signals"] = cursor.fetchone()[0]
 
         cursor.execute(
-            "SELECT COUNT(*) FROM signals"
+            "SELECT COUNT(*) FROM signals WHERE direction='SELL'"
         )
-
-        statistics["total_signals"] = (
-            cursor.fetchone()[0]
-        )
-
+        statistics["sell_signals"] = cursor.fetchone()[0]
 
         cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM signals
-            WHERE direction='BUY'
-            """
+            "SELECT COUNT(*) FROM signals WHERE direction='WAIT'"
         )
-
-        statistics["buy_signals"] = (
-            cursor.fetchone()[0]
-        )
-
+        statistics["wait_signals"] = cursor.fetchone()[0]
 
         cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM signals
-            WHERE direction='SELL'
-            """
+            "SELECT AVG(confidence) FROM signals"
         )
-
-        statistics["sell_signals"] = (
-            cursor.fetchone()[0]
-        )
-
-
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM signals
-            WHERE direction='WAIT'
-            """
-        )
-
-        statistics["wait_signals"] = (
-            cursor.fetchone()[0]
-        )
-
-
-        cursor.execute(
-            """
-            SELECT AVG(confidence)
-            FROM signals
-            """
-        )
-
 
         average = cursor.fetchone()[0]
 
-
-        if average is None:
-            average = 0
-
-
-        statistics["average_confidence"] = round(
-            average,
-            2
+        statistics["average_confidence"] = (
+            round(average, 2)
+            if average is not None
+            else 0
         )
-
 
         return statistics

@@ -7,135 +7,135 @@ Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-import os
 import logging
+import os
 
 
 class Logger:
+    """
+    Professional logging manager for Andy Scanner.
+    """
 
-    # ==========================================
-    # Constructor
-    # ==========================================
+    LOG_DIRECTORY = "logs"
 
     def __init__(self):
+        """
+        Initialize all project loggers.
+        """
 
-        # Create logs directory
-        os.makedirs("logs", exist_ok=True)
+        os.makedirs(self.LOG_DIRECTORY, exist_ok=True)
 
         formatter = logging.Formatter(
             "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
 
-        # ===========================
-        # Scanner Logger
-        # ===========================
+        self.scanner = self._create_logger(
+            "Scanner",
+            "scanner.log",
+            logging.INFO,
+            formatter,
+            console_output=True,
+        )
 
-        self.scanner = logging.getLogger("Scanner")
-        self.scanner.setLevel(logging.INFO)
+        self.signal = self._create_logger(
+            "Signal",
+            "signals.log",
+            logging.INFO,
+            formatter,
+        )
 
-        if not self.scanner.handlers:
+        self.error = self._create_logger(
+            "Error",
+            "errors.log",
+            logging.ERROR,
+            formatter,
+        )
 
-            file_handler = logging.FileHandler("logs/scanner.log")
+        self.session = self._create_logger(
+            "Session",
+            "sessions.log",
+            logging.INFO,
+            formatter,
+        )
+
+    # ==========================================================
+    # INTERNAL LOGGER CREATOR
+    # ==========================================================
+
+    def _create_logger(
+        self,
+        name,
+        filename,
+        level,
+        formatter,
+        console_output=False,
+    ):
+        """
+        Create and configure a logger.
+        """
+
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        logger.propagate = False
+
+        if not logger.handlers:
+
+            file_handler = logging.FileHandler(
+                os.path.join(self.LOG_DIRECTORY, filename),
+                encoding="utf-8",
+            )
+
             file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
 
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(formatter)
+            if console_output:
+                console_handler = logging.StreamHandler()
+                console_handler.setFormatter(formatter)
+                logger.addHandler(console_handler)
 
-            self.scanner.addHandler(file_handler)
-            self.scanner.addHandler(console_handler)
+        return logger
 
-        # ===========================
-        # Signal Logger
-        # ===========================
-
-        self.signal = logging.getLogger("Signal")
-        self.signal.setLevel(logging.INFO)
-
-        if not self.signal.handlers:
-
-            file_handler = logging.FileHandler("logs/signals.log")
-            file_handler.setFormatter(formatter)
-
-            self.signal.addHandler(file_handler)
-
-        # ===========================
-        # Error Logger
-        # ===========================
-
-        self.error = logging.getLogger("Error")
-        self.error.setLevel(logging.ERROR)
-
-        if not self.error.handlers:
-
-            file_handler = logging.FileHandler("logs/errors.log")
-            file_handler.setFormatter(formatter)
-
-            self.error.addHandler(file_handler)
-
-        # ===========================
-        # Session Logger
-        # ===========================
-
-        self.session = logging.getLogger("Session")
-        self.session.setLevel(logging.INFO)
-
-        if not self.session.handlers:
-
-            file_handler = logging.FileHandler("logs/sessions.log")
-            file_handler.setFormatter(formatter)
-
-            self.session.addHandler(file_handler)
-
-    # ==========================================
-    # General Info Logger
-    # ==========================================
+    # ==========================================================
+    # GENERAL LOGGING
+    # ==========================================================
 
     def info(self, logger_name, message):
+        """
+        Write an INFO message to the selected logger.
+        """
 
-        if logger_name == "Scanner":
-            self.scanner.info(message)
+        loggers = {
+            "Scanner": self.scanner,
+            "Signal": self.signal,
+            "Session": self.session,
+        }
 
-        elif logger_name == "Signal":
-            self.signal.info(message)
+        loggers.get(logger_name, self.scanner).info(message)
 
-        elif logger_name == "Session":
-            self.session.info(message)
-
-        else:
-            self.scanner.info(message)
-
-    # ==========================================
-    # Error Logger
-    # ==========================================
-
-    def error_log(self, message):
-        self.error.error(message)
-
-    # ==========================================
-    # Scanner Logger
-    # ==========================================
+    # ==========================================================
+    # SPECIALIZED LOGGERS
+    # ==========================================================
 
     def scanner_log(self, message):
+        """Write scanner log."""
         self.scanner.info(message)
 
-    # ==========================================
-    # Signal Logger
-    # ==========================================
-
     def signal_log(self, message):
+        """Write signal log."""
         self.signal.info(message)
 
-    # ==========================================
-    # Session Logger
-    # ==========================================
-
     def session_log(self, message):
+        """Write session log."""
         self.session.info(message)
 
+    def error_log(self, message):
+        """Write error log."""
+        self.error.error(message)
 
-# ==========================================
+
+# ==========================================================
 # Global Logger Instance
-# ==========================================
+# ==========================================================
 
 logger = Logger()

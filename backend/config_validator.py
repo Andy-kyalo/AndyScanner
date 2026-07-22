@@ -1,7 +1,7 @@
 """
 config_validator.py
 
-Configuration validation.
+Configuration validation for Andy Scanner.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
@@ -12,7 +12,13 @@ from config.config import Config
 
 def validate_config():
     """
-    Validate application configuration.
+    Validate the application's configuration.
+
+    Raises
+    ------
+    RuntimeError
+        If one or more required configuration values
+        are missing.
     """
 
     required = {
@@ -23,23 +29,28 @@ def validate_config():
         "DATABASE_PATH": Config.DATABASE_PATH,
     }
 
-    missing = []
-
-    for key, value in required.items():
-        if value is None or str(value).strip() == "":
-            missing.append(key)
+    missing = [
+        key
+        for key, value in required.items()
+        if not str(value).strip()
+    ]
 
     print("\n========== CONFIGURATION ==========")
 
     if missing:
         print("Status : INVALID")
+        print()
+
         print("Missing Configuration:")
 
         for item in missing:
-            print(f" - {item}")
+            print(f" • {item}")
 
         print("===================================")
-        raise RuntimeError("Configuration validation failed.")
+
+        raise RuntimeError(
+            "Configuration validation failed."
+        )
 
     print("Status : VALID")
     print("===================================")

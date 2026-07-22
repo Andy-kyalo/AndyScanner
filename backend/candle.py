@@ -1,19 +1,36 @@
+"""
+candle.py
+
+Represents a single market candle and provides
+analysis utilities for price action.
+
+Author: Andrew Kyalo
+Project: Andy Scanner
+"""
+
+
 class Candle:
+    """
+    Represents one OHLC candle.
+    """
 
     # ==========================================
     # Constructor
     # ==========================================
 
     def __init__(self, time, open_price, high, low, close):
+        """
+        Initialize a candle.
+        """
 
         if high < max(open_price, close):
             raise ValueError(
-                f"Invalid candle at {time}: High cannot be below Open or Close."
+                f"{time}: High cannot be below Open or Close."
             )
 
         if low > min(open_price, close):
             raise ValueError(
-                f"Invalid candle at {time}: Low cannot be above Open or Close."
+                f"{time}: Low cannot be above Open or Close."
             )
 
         self.time = time
@@ -27,11 +44,12 @@ class Candle:
     # ==========================================
 
     def get_type(self):
+        """Return Bullish, Bearish or Doji."""
 
         if self.close > self.open:
             return "Bullish"
 
-        elif self.close < self.open:
+        if self.close < self.open:
             return "Bearish"
 
         return "Doji"
@@ -43,7 +61,7 @@ class Candle:
         return self.close < self.open
 
     # ==========================================
-    # Candle Measurements
+    # Measurements
     # ==========================================
 
     def body_size(self):
@@ -53,18 +71,20 @@ class Candle:
         return round(self.high - self.low, 2)
 
     def upper_wick(self):
-
         if self.is_bullish():
-            return round(self.high - self.close, 2)
+            wick = self.high - self.close
+        else:
+            wick = self.high - self.open
 
-        return round(self.high - self.open, 2)
+        return round(wick, 2)
 
     def lower_wick(self):
-
         if self.is_bullish():
-            return round(self.open - self.low, 2)
+            wick = self.open - self.low
+        else:
+            wick = self.close - self.low
 
-        return round(self.close - self.low, 2)
+        return round(wick, 2)
 
     def midpoint(self):
         return round((self.high + self.low) / 2, 2)
@@ -77,21 +97,18 @@ class Candle:
         return self.body_size() <= self.range() * 0.10
 
     def is_marubozu(self):
-
         return (
             self.upper_wick() <= self.range() * 0.05
             and self.lower_wick() <= self.range() * 0.05
         )
 
     def is_hammer(self):
-
         return (
             self.lower_wick() >= self.body_size() * 2
             and self.upper_wick() <= self.body_size()
         )
 
     def is_shooting_star(self):
-
         return (
             self.upper_wick() >= self.body_size() * 2
             and self.lower_wick() <= self.body_size()
@@ -102,6 +119,9 @@ class Candle:
     # ==========================================
 
     def show(self):
+        """
+        Print candle information.
+        """
 
         print("========== Candle ==========")
         print(f"Time        : {self.time}")

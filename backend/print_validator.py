@@ -2,19 +2,38 @@
 print_validator.py
 
 Displays project validation results.
+
+Author: Andrew Kyalo
+Project: Andy Scanner
 """
 
-def print_project_validation(result):
+
+def print_project_validation(result: dict) -> None:
+    """
+    Display project structure validation results.
+
+    Parameters
+    ----------
+    result : dict
+        Validation result returned by ProjectValidator.
+    """
 
     print("\n========== PROJECT VALIDATION ==========")
 
     if result["valid"]:
-        print("Project Structure : VALID")
+
+        print("Status             : VALID")
+        print("Project Structure  : COMPLETE")
+
     else:
-        print("Project Structure : INVALID")
-        print("\nMissing:")
+
+        print("Status             : INVALID")
+        print("Project Structure  : INCOMPLETE")
+        print()
+
+        print("Missing Resources:")
 
         for item in result["missing"]:
-            print(f" - {item}")
+            print(f"  • {item}")
 
     print("========================================")
