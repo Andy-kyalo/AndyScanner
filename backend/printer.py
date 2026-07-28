@@ -1,5 +1,3 @@
-
-
 """
 printer.py
 
@@ -8,6 +6,9 @@ Displays all Andy Scanner analysis results.
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
+
+from backend.signal_engine import SignalEngine
+
 
 # ==========================================
 # Analysis
@@ -56,7 +57,9 @@ def print_swing_highs(analyzer):
 
     if highs:
         for candle in highs:
-            print(f"Swing High at {candle.time} | High = {candle.high}")
+            print(
+                f"Swing High at {candle.time} | High = {candle.high}"
+            )
     else:
         print("No Swing High found.")
 
@@ -76,7 +79,9 @@ def print_swing_lows(analyzer):
 
     if lows:
         for candle in lows:
-            print(f"Swing Low at {candle.time} | Low = {candle.low}")
+            print(
+                f"Swing Low at {candle.time} | Low = {candle.low}"
+            )
     else:
         print("No Swing Low found.")
 
@@ -85,7 +90,7 @@ def print_swing_lows(analyzer):
 
 
 # ==========================================
-# Break of Structure
+# Break Of Structure
 # ==========================================
 
 def print_bos(analyzer):
@@ -125,8 +130,10 @@ def print_market_structure(analyzer):
 
     if analyzer.bullish_bos():
         structure = "Bullish Break of Structure"
+
     elif analyzer.bearish_bos():
         structure = "Bearish Break of Structure"
+
     else:
         structure = "No Break of Structure"
 
@@ -173,11 +180,13 @@ def print_order_blocks(analyzer):
     print("========== Bullish Order Block ==========")
 
     if order_block:
+
         print(f"Time : {order_block.time}")
         print(f"Open : {order_block.open}")
         print(f"High : {order_block.high}")
         print(f"Low  : {order_block.low}")
         print(f"Close: {order_block.close}")
+
     else:
         print("No Bullish Order Block.")
 
@@ -186,7 +195,7 @@ def print_order_blocks(analyzer):
 
 
 # ==========================================
-# Change of Character
+# Change Of Character
 # ==========================================
 
 def print_choch(analyzer):
@@ -195,8 +204,10 @@ def print_choch(analyzer):
 
     if analyzer.bullish_choch():
         print("Bullish Change of Character.")
+
     elif analyzer.bearish_choch():
         print("Bearish Change of Character.")
+
     else:
         print("No Change of Character.")
 
@@ -214,14 +225,24 @@ def print_fvg(analyzer):
 
     fvgs = analyzer.bullish_fvg()
 
-    if fvgs:
-        for first, third in fvgs:
-            print(
-                f"Gap between {first.time} ({first.high}) "
-                f"and {third.time} ({third.low})"
-            )
-    else:
-        print("No Bullish Fair Value Gap.")
+    if not fvgs:
+
+        print("No Bullish FVG.")
+        print("=================================")
+        print()
+        return
+
+    for gap in fvgs:
+
+        first = gap["first"]
+        third = gap["third"]
+
+        print(
+            f"Gap between {first.time} ({first.high}) "
+            f"and {third.time} ({third.low})"
+        )
+
+        print(f"Gap Size : {gap['gap_size']}")
 
     print("=================================")
     print()
@@ -270,7 +291,10 @@ def print_signal(analyzer):
 
     print("========== Signal ==========")
 
-    signal = analyzer.generate_signal()
+    signal_engine = SignalEngine(analyzer)
+
+    signal = signal_engine.generate()
+
     signal.show()
 
     print()

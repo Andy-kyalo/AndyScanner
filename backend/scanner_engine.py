@@ -10,12 +10,13 @@ Project: Andy Scanner
 import time
 from datetime import datetime
 
-from backend.loader import Loader
+from backend.provider_factory import ProviderFactory
 from backend.analyzer import Analyzer
 from backend.logger import Logger
-
+from backend.market_validator import MarketValidator
+from backend.scanner_config import ScannerConfig
+from backend.signal_engine import SignalEngine
 from database.database_manager import DatabaseManager
-from config.config import Config
 
 
 class ScannerEngine:
@@ -24,28 +25,27 @@ class ScannerEngine:
 
     Responsibilities:
     - Load market data
+    - Validate market data
     - Analyze market structure
     - Generate trading signal
     - Save scan results
     - Write logs
     """
 
-    def __init__(self, csv_file):
-        """
-        Initialize the Scanner Engine.
-        """
-        self.csv_file = csv_file
+    def __init__(self, scanner_config: ScannerConfig):
+
+        self.config = scanner_config
         self.logger = Logger()
 
     def run(self):
         """
-        Execute a complete market scan.
+        Execute one complete market scan.
         """
 
         start_time = time.time()
 
-        market = Config.DEFAULT_MARKET
-        timeframe = Config.DEFAULT_TIMEFRAME
+        market = self.config.market
+        timeframe = self.config.timeframe
 
         try:
 
@@ -55,7 +55,7 @@ class ScannerEngine:
 
             self.logger.session_log("===== SESSION STARTED =====")
             self.logger.session_log(
-                f"Started At : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                f"Started At : {datetime.now():%Y-%m-%d %H:%M:%S}"
             )
             self.logger.session_log(f"Market     : {market}")
             self.logger.session_log(f"Timeframe  : {timeframe}")
@@ -65,17 +65,38 @@ class ScannerEngine:
                 "Starting market scan."
             )
 
-            with DatabaseManager(Config.DATABASE_PATH) as database:
+            # ==========================================
+            # Database
+            # ==========================================
+
+            with DatabaseManager() as database:
 
                 # ==========================================
                 # Load Market Data
                 # ==========================================
 
-                loader = Loader(self.csv_file)
-                candles = loader.load()
+                provider = ProviderFactory.create(self.config)
+                candles = provider.load()
 
                 self.logger.session_log(
                     f"Candles Loaded : {len(candles)}"
+                )
+
+                # ==========================================
+                # Validate Market Data
+                # ==========================================
+
+                validator = MarketValidator(candles)
+
+                if not validator.validate():
+
+                    raise ValueError(
+                        "Market data validation failed."
+                    )
+
+                self.logger.info(
+                    "Validator",
+                    "Market data validation passed."
                 )
 
                 # ==========================================
@@ -83,7 +104,9 @@ class ScannerEngine:
                 # ==========================================
 
                 analyzer = Analyzer(candles)
-                signal = analyzer.generate_signal()
+
+                signal_engine = SignalEngine(analyzer)
+                signal = signal_engine.generate()
 
                 signal.market = market
                 signal.timeframe = timeframe
@@ -168,10 +191,6 @@ class ScannerEngine:
                 self.logger.session_log(
                     "===== SESSION COMPLETED ====="
                 )
-
-                # ==========================================
-                # Return Results
-                # ==========================================
 
                 return {
                     "candles": candles,

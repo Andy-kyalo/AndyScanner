@@ -46,6 +46,11 @@ class Config:
 
     DEFAULT_MARKET = os.getenv("DEFAULT_MARKET", "US30")
     DEFAULT_TIMEFRAME = os.getenv("DEFAULT_TIMEFRAME", "M5")
+    
+    DATA_SOURCE = os.getenv(
+        "DATA_SOURCE",
+        "csv",
+    )
 
     SCAN_INTERVAL = int(
         os.getenv("SCAN_INTERVAL", "60")
