@@ -19,6 +19,7 @@ from backend.print_validator import print_project_validation
 from backend.scanner_engine import ScannerEngine
 from backend.scanner_config import ScannerConfig
 from backend.report_manager import ReportManager
+from backend.register_providers import register_providers
 
 from database.database_manager import DatabaseManager
 
@@ -113,6 +114,23 @@ def main():
 
     report.print_scan_report(candles, analyzer)
     report.print_database_report()
+
+    # ==========================================
+    # Provider Metrics
+    # ==========================================
+
+    provider_manager = register_providers()
+
+    metrics = provider_manager.metrics_report()
+
+    print("\n========== Provider Metrics ==========")
+    print(f"Requests     : {metrics['total_requests']}")
+    print(f"Successful   : {metrics['successful_requests']}")
+    print(f"Failed       : {metrics['failed_requests']}")
+    print(f"Success Rate : {metrics['success_rate']}%")
+    print(f"Average Time : {metrics['average_time']} sec")
+    print("======================================")
+
 
 
 if __name__ == "__main__":
