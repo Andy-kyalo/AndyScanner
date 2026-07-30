@@ -1,73 +1,50 @@
 """
 provider_factory.py
 
-Creates market data providers.
+Factory responsible for creating market data providers.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from backend.providers.base_provider import BaseProvider
-from backend.providers.csv_provider import CSVProvider
-from backend.providers.mt5_provider import MT5Provider
-from backend.api_provider import APIProvider
+from backend.provider_manager import ProviderManager
+from backend.provider_exceptions import (
+    ProviderNotFoundError,
+)
 
 
 class ProviderFactory:
     """
-    Factory responsible for creating market data providers.
+    Creates provider instances using the ProviderManager.
     """
 
-    _PROVIDERS: dict[str, type[BaseProvider]] = {
-        "CSV": CSVProvider,
-        "MT5": MT5Provider,
-        "API": APIProvider,
-    }
+    def __init__(self, manager: ProviderManager):
 
-    @classmethod
-    def create(cls, config) -> BaseProvider:
+        self.manager = manager
+
+    # ==================================================
+    # Create Provider
+    # ==================================================
+
+    def create(self, config):
         """
-        Create a provider from the scanner configuration.
+        Create a provider from scanner configuration.
         """
 
         provider_name = config.data_source.upper()
 
-        provider_class = cls._PROVIDERS.get(provider_name)
+        if not self.manager.provider_exists(provider_name):
 
-        if provider_class is None:
-            supported = ", ".join(sorted(cls._PROVIDERS.keys()))
+            available = ", ".join(self.manager.providers())
 
-            raise ValueError(
-                f"Unsupported data source '{provider_name}'. "
-                f"Supported providers: {supported}"
+            raise ProviderNotFoundError(
+                f"Provider '{provider_name}' is not registered. "
+                f"Available providers: {available}"
             )
 
-        return provider_class(config)
+        provider = self.manager.create(
+            provider_name,
+            config,
+        )
 
-    @classmethod
-    def register(
-        cls,
-        name: str,
-        provider: type[BaseProvider],
-    ) -> None:
-        """
-        Register a new provider.
-        """
-
-        cls._PROVIDERS[name.upper()] = provider
-
-    @classmethod
-    def unregister(cls, name: str) -> None:
-        """
-        Remove a registered provider.
-        """
-
-        cls._PROVIDERS.pop(name.upper(), None)
-
-    @classmethod
-    def available_providers(cls) -> list[str]:
-        """
-        Return all registered providers.
-        """
-
-        return sorted(cls._PROVIDERS.keys())
+        return provider

@@ -7,94 +7,85 @@ Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from backend.logger import Logger
 from backend.provider_registry import ProviderRegistry
 from backend.provider_health import ProviderHealth
 from backend.provider_metrics import ProviderMetrics
+from backend.provider_exceptions import (
+    ProviderNotFoundError,
+)
 
 
 class ProviderManager:
     """
     Coordinates provider registration,
     creation, health monitoring,
-    metrics and provider selection.
+    and performance metrics.
     """
 
     def __init__(self):
-
-        self.logger = Logger()
 
         self.registry = ProviderRegistry()
         self.metrics = ProviderMetrics()
 
     # ==================================================
-    # Registry
+    # Registration
     # ==================================================
 
-    def register(self, name: str, provider_class) -> None:
-        """
-        Register a provider.
-        """
+    def register(
+        self,
+        name,
+        provider_class,
+    ):
 
-        self.registry.register(name, provider_class)
-
-        self.logger.info(
-            "ProviderManager",
-            f"Registered provider: {name.upper()}"
+        self.registry.register(
+            name,
+            provider_class,
         )
 
     # ==================================================
     # Provider Creation
     # ==================================================
 
-    def create(self, name: str, config):
+    def create(
+        self,
+        name,
+        config,
+    ):
         """
-        Create provider instance.
+        Create a provider instance.
         """
 
         provider_class = self.registry.get(name)
 
         if provider_class is None:
 
-            raise ValueError(
+            raise ProviderNotFoundError(
                 f"Provider '{name}' is not registered."
             )
 
-        provider = provider_class(config)
-
-        self.logger.info(
-            "ProviderManager",
-            f"Created provider: {name.upper()}"
-        )
-
-        return provider
+        return provider_class(config)
 
     # ==================================================
     # Health
     # ==================================================
 
-    def health(self, provider) -> ProviderHealth:
-        """
-        Return provider health checker.
-        """
+    def health(self, provider):
 
         return ProviderHealth(provider)
-
-    def is_healthy(self, provider) -> bool:
-        """
-        Check provider health.
-        """
-
-        return self.health(provider).check()
 
     # ==================================================
     # Metrics
     # ==================================================
 
-    def metrics_report(self) -> dict:
-        """
-        Return provider metrics.
-        """
+    def record_success(self):
+
+        self.metrics.record_success()
+
+    def record_failure(self):
+
+        self.metrics.record_failure()
+
+    def metrics_report(self):
 
         return self.metrics.report()
 
@@ -102,24 +93,17 @@ class ProviderManager:
     # Registry Information
     # ==================================================
 
-    def providers(self) -> list[str]:
-        """
-        Return registered providers.
-        """
+    def providers(self):
 
         return self.registry.names()
 
-    # ==================================================
-    # Future Failover
-    # ==================================================
+    def provider_exists(
+        self,
+        name,
+    ):
 
-    def get_best_provider(self, config):
-        """
-        Reserved for automatic provider
-        failover in future versions.
-        """
+        return self.registry.exists(name)
 
-        return self.create(
-            config.data_source,
-            config,
-        )
+    def provider_count(self):
+
+        return self.registry.count()

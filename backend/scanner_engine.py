@@ -17,6 +17,9 @@ from backend.register_providers import register_providers
 from backend.scanner_config import ScannerConfig
 from backend.signal_engine import SignalEngine
 from database.database_manager import DatabaseManager
+from backend.provider_factory import ProviderFactory
+from backend.provider_retry import ProviderRetry
+from backend.provider_timeout import ProviderTimeout
 
 
 class ScannerEngine:
@@ -85,10 +88,9 @@ class ScannerEngine:
             # Provider
             # ==================================================
 
-            provider = provider_manager.create(
-                self.config.data_source,
-                self.config,
-            )
+            factory = ProviderFactory(provider_manager)
+
+            provider = factory.create(self.config)
 
             health = provider_manager.health(provider)
 
@@ -106,15 +108,25 @@ class ScannerEngine:
                 f"Provider : {provider.name}"
             )
 
-            # ==================================================
+            # ------------------------------------------
             # Load Market Data
-            # ==================================================
+            # ------------------------------------------
 
-            candles = provider.load()
-
-            self.logger.session_log(
-                f"Candles Loaded : {len(candles)}"
+            timeout = ProviderTimeout(
+                timeout=10.0,
             )
+
+            retry = ProviderRetry(
+                retries=3,
+                delay=1.0,
+            )
+
+            candles = retry.execute(
+                lambda: timeout.execute(
+                    provider.load
+           )
+        )
+       
 
             # ==================================================
             # Validate Market Data
