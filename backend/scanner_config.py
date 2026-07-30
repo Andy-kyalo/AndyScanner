@@ -1,80 +1,44 @@
 """
 scanner_config.py
 
-Scanner configuration object.
+Scanner configuration.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from dataclasses import dataclass, field
 
-from config.config import Config
-
-
-@dataclass
 class ScannerConfig:
     """
-    Runtime configuration for one scanner session.
+    Holds runtime scanner configuration.
     """
 
-    # ==================================================
-    # Market Configuration
-    # ==================================================
+    def __init__(
+        self,
+        market,
+        timeframe,
+        data_source="CSV",
+        provider_priority=None,
+    ):
 
-    market: str = Config.DEFAULT_MARKET
-    timeframe: str = Config.DEFAULT_TIMEFRAME
+        self.market = market
+        self.timeframe = timeframe
 
-    # ==================================================
-    # Provider Configuration
-    # ==================================================
+        # Default provider
+        self.data_source = data_source.upper()
 
-    provider: str = "CSV"
+        # Provider failover order
+        if provider_priority is None:
 
-    data_source: str = Config.DATA_SOURCE
-    data_directory: str = str(Config.DATA_DIRECTORY)
+            self.provider_priority = [
+                "CSV",
+                "API",
+                "MT5",
+            ]
 
-    # ==================================================
-    # Database Configuration
-    # ==================================================
+        else:
 
-    database_path: str = Config.DATABASE_PATH
-
-    # ==================================================
-    # Logging
-    # ==================================================
-
-    log_level: str = Config.LOG_LEVEL
-
-    debug: bool = Config.DEBUG
-
-    # ==================================================
-    # Supported Providers
-    # ==================================================
-
-    supported_providers: tuple = field(
-        default_factory=lambda: (
-            "CSV",
-            "MT5",
-            "TRADINGVIEW",
-            "BINANCE",
-            "POLYGON",
-            "MOCK",
-        )
-    )
-
-    # ==================================================
-    # Validation
-    # ==================================================
-
-    def validate(self):
-        """
-        Validate the scanner configuration.
-        """
-
-        if self.provider.upper() not in self.supported_providers:
-            raise ValueError(
-                f"Unsupported provider: {self.provider}"
-            )
-
-        return True
+            self.provider_priority = [
+                provider.upper()
+                for provider in provider_priority
+            ]

@@ -18,7 +18,9 @@ from backend.provider_exceptions import (
 class ProviderManager:
     """
     Coordinates provider registration,
-    creation, health monitoring,
+    provider creation,
+    provider failover,
+    health monitoring,
     and performance metrics.
     """
 
@@ -43,27 +45,48 @@ class ProviderManager:
         )
 
     # ==================================================
-    # Provider Creation
+    # Provider Creation (Automatic Failover)
     # ==================================================
 
-    def create(
-        self,
-        name,
-        config,
-    ):
+    def create(self, config):
         """
-        Create a provider instance.
+        Create the first healthy provider from the
+        configured provider priority list.
         """
 
-        provider_class = self.registry.get(name)
+        last_error = None
 
-        if provider_class is None:
+        for provider_name in config.provider_priority:
 
-            raise ProviderNotFoundError(
-                f"Provider '{name}' is not registered."
+            provider_class = self.registry.get(provider_name)
+
+            if provider_class is None:
+                continue
+
+            try:
+
+                provider = provider_class(config)
+
+                health = ProviderHealth(provider)
+
+                if health.check():
+
+                    return provider
+
+            except Exception as error:
+
+                last_error = error
+                continue
+
+        if last_error:
+
+            raise RuntimeError(
+                f"No available provider. Last error: {last_error}"
             )
 
-        return provider_class(config)
+        raise ProviderNotFoundError(
+            "No registered providers are available."
+        )
 
     # ==================================================
     # Health

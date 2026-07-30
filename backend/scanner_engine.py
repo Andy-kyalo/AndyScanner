@@ -16,10 +16,10 @@ from backend.market_validator import MarketValidator
 from backend.register_providers import register_providers
 from backend.scanner_config import ScannerConfig
 from backend.signal_engine import SignalEngine
-from database.database_manager import DatabaseManager
 from backend.provider_factory import ProviderFactory
 from backend.provider_retry import ProviderRetry
 from backend.provider_timeout import ProviderTimeout
+from database.database_manager import DatabaseManager
 
 
 class ScannerEngine:
@@ -28,13 +28,13 @@ class ScannerEngine:
 
     Responsibilities
     ----------------
+    • Acquire provider
     • Load market data
-    • Validate provider
     • Validate market data
     • Analyze market
-    • Generate trading signal
-    • Save scan results
-    • Write logs
+    • Generate signal
+    • Persist results
+    • Log execution
     """
 
     def __init__(self, scanner_config: ScannerConfig):
@@ -92,29 +92,22 @@ class ScannerEngine:
 
             provider = factory.create(self.config)
 
-            health = provider_manager.health(provider)
+            provider_manager.record_success()
 
-            if not health.check():
-
-                provider_manager.metrics.record_failure()
-
-                raise RuntimeError(
-                    f"{provider.name} failed health check."
-                )
-
-            provider_manager.metrics.record_success()
+            self.logger.info(
+                "Scanner",
+                f"Using provider: {provider.name}"
+            )
 
             self.logger.session_log(
-                f"Provider : {provider.name}"
+                f"Provider   : {provider.name}"
             )
 
-            # ------------------------------------------
+            # ==================================================
             # Load Market Data
-            # ------------------------------------------
+            # ==================================================
 
-            timeout = ProviderTimeout(
-                timeout=10.0,
-            )
+            timeout = ProviderTimeout(timeout=10.0)
 
             retry = ProviderRetry(
                 retries=3,
@@ -122,11 +115,12 @@ class ScannerEngine:
             )
 
             candles = retry.execute(
-                lambda: timeout.execute(
-                    provider.load
-           )
-        )
-       
+                lambda: timeout.execute(provider.load)
+            )
+
+            self.logger.session_log(
+                f"Candles    : {len(candles)}"
+            )
 
             # ==================================================
             # Validate Market Data
@@ -153,9 +147,9 @@ class ScannerEngine:
 
             trend = analyzer.trend()
 
-            signal_engine = SignalEngine(analyzer)
-
-            signal = signal_engine.generate()
+            signal = SignalEngine(
+                analyzer
+            ).generate()
 
             signal.market = market
             signal.timeframe = timeframe
@@ -166,20 +160,13 @@ class ScannerEngine:
 
             with DatabaseManager() as database:
 
-                if database.scan_exists(
+                if not database.scan_exists(
                     market,
                     timeframe,
                     scan_time.strftime(
                         "%Y-%m-%d %H:%M:%S"
                     ),
                 ):
-
-                    self.logger.info(
-                        "Database",
-                        "Duplicate scan detected."
-                    )
-
-                else:
 
                     database.save_signal(signal)
 
@@ -194,6 +181,13 @@ class ScannerEngine:
                     self.logger.info(
                         "Database",
                         "Scan saved successfully."
+                    )
+
+                else:
+
+                    self.logger.info(
+                        "Database",
+                        "Duplicate scan detected."
                     )
 
             # ==================================================
@@ -251,7 +245,10 @@ class ScannerEngine:
 
         except Exception as error:
 
-            provider_manager.metrics.record_failure()
+            try:
+                provider_manager.record_failure()
+            except Exception:
+                pass
 
             self.logger.error_log(
                 f"ScannerEngine failed: {error}"

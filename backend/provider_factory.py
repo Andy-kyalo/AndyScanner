@@ -42,9 +42,4 @@ class ProviderFactory:
                 f"Available providers: {available}"
             )
 
-        provider = self.manager.create(
-            provider_name,
-            config,
-        )
-
-        return provider
+        return self.manager.create(config)
