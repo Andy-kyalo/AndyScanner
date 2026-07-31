@@ -7,96 +7,130 @@ Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from collections import deque
+from copy import deepcopy
 
 
 class NotificationHistory:
     """
-    Stores notification history.
+    Stores all dispatched notifications.
     """
 
-    def __init__(self, max_size=1000):
+    def __init__(self):
 
-        self.max_size = max(1, int(max_size))
-
-        self._history = deque(maxlen=self.max_size)
+        self._history = []
 
     # ==================================================
-    # Operations
+    # Store
     # ==================================================
 
-    def add(self, notification):
+    def add(
+        self,
+        notification,
+    ):
 
         self._history.append(notification)
 
-    def clear(self):
-
-        self._history.clear()
-
     # ==================================================
-    # Retrieval
+    # Queries
     # ==================================================
-
-    def latest(self):
-
-        if not self._history:
-
-            return None
-
-        return self._history[-1]
-
-    def oldest(self):
-
-        if not self._history:
-
-            return None
-
-        return self._history[0]
 
     def all(self):
 
         return list(self._history)
 
-    def last(self, count=10):
+    def latest(self):
 
-        count = max(1, int(count))
+        if not self._history:
+            return None
 
-        return list(self._history)[-count:]
+        return self._history[-1]
+
+    def count(self):
+
+        return len(self._history)
+
+    def sent(self):
+
+        return [
+            notification
+            for notification in self._history
+            if notification.sent
+        ]
+
+    def pending(self):
+
+        return [
+            notification
+            for notification in self._history
+            if not notification.sent
+        ]
 
     # ==================================================
     # Search
     # ==================================================
 
-    def find(self, notification_id):
+    def by_channel(
+        self,
+        channel,
+    ):
 
-        for notification in self._history:
+        channel = channel.upper()
 
-            if getattr(notification, "notification_id", None) == notification_id:
+        return [
+            notification
+            for notification in self._history
+            if notification.channel.upper() == channel
+        ]
 
-                return notification
+    def by_type(
+        self,
+        notification_type,
+    ):
 
-        return None
+        value = (
+            notification_type.value
+            if hasattr(notification_type, "value")
+            else str(notification_type)
+        )
+
+        return [
+            notification
+            for notification in self._history
+            if notification.notification_type.value == value
+        ]
+
+    def by_priority(
+        self,
+        priority,
+    ):
+
+        value = (
+            priority.value
+            if hasattr(priority, "value")
+            else str(priority)
+        )
+
+        return [
+            notification
+            for notification in self._history
+            if notification.priority.value == value
+        ]
 
     # ==================================================
-    # Statistics
+    # Export
     # ==================================================
 
-    def size(self):
+    def export(self):
 
-        return len(self._history)
+        return [
+            deepcopy(notification.to_dict())
+            for notification in self._history
+        ]
 
-    def empty(self):
+    # ==================================================
+    # Maintenance
+    # ==================================================
 
-        return self.size() == 0
+    def clear(self):
 
-    def summary(self):
-
-        return {
-
-            "records": self.size(),
-
-            "capacity": self.max_size,
-
-            "empty": self.empty(),
-
-        }
+        self._history.clear()

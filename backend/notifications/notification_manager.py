@@ -1,137 +1,132 @@
 """
 notification_manager.py
 
-Notification Manager.
+Central Notification Manager.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from backend.notifications.notification_history import NotificationHistory
-from backend.notifications.notification_metrics import NotificationMetrics
+from backend.notifications.notification import (
+    Notification,
+    NotificationPriority,
+    NotificationType,
+)
 
 
 class NotificationManager:
     """
-    Central notification coordinator.
+    Central manager for all notifications.
     """
 
     def __init__(self):
 
-        self.channels = {}
-
-        self.history = NotificationHistory()
-
-        self.metrics = NotificationMetrics()
+        self.notifications = []
 
     # ==================================================
-    # Channel Management
+    # Create Notification
     # ==================================================
 
-    def register_channel(
+    def create(
         self,
-        name,
-        channel,
+        title,
+        message,
+        notification_type=NotificationType.INFO,
+        priority=NotificationPriority.NORMAL,
+        channel="SYSTEM",
+        metadata=None,
     ):
 
-        self.channels[name] = channel
+        notification = Notification(
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            priority=priority,
+            channel=channel,
+            metadata=metadata,
+        )
 
-    def unregister_channel(self, name):
+        self.notifications.append(notification)
 
-        self.channels.pop(name, None)
-
-    def get_channel(self, name):
-
-        return self.channels.get(name)
-
-    # ==================================================
-    # Send Notification
-    # ==================================================
-
-    def send(self, notification):
-
-        self.metrics.notification_created()
-
-        channel = self.channels.get(notification.channel)
-
-        if channel is None:
-
-            self.metrics.notification_failed()
-
-            return False
-
-        if not channel.active:
-
-            self.metrics.notification_disabled()
-
-            return False
-
-        try:
-
-            status = channel.send(notification)
-
-            if status:
-
-                notification.mark_delivered()
-
-                self.metrics.notification_sent()
-
-            else:
-
-                self.metrics.notification_failed()
-
-            self.history.add(notification)
-
-            return status
-
-        except Exception:
-
-            self.metrics.notification_failed()
-
-            return False
+        return notification
 
     # ==================================================
-    # Broadcast
+    # Register Existing Notification
     # ==================================================
 
-    def broadcast(self, notification):
+    def register(
+        self,
+        notification,
+    ):
 
-        delivered = 0
-
-        for channel in self.channels.values():
-
-            clone = type(notification)(**notification.to_dict())
-
-            clone.channel = channel.name
-
-            if self.send(clone):
-
-                delivered += 1
-
-        return delivered
+        self.notifications.append(notification)
 
     # ==================================================
-    # Reset
+    # Mark As Sent
     # ==================================================
 
-    def reset(self):
+    def mark_sent(
+        self,
+        notification,
+    ):
 
-        self.history.clear()
-
-        self.metrics.reset()
+        notification.mark_sent()
 
     # ==================================================
-    # Information
+    # Queries
     # ==================================================
 
-    def summary(self):
+    def all(self):
+
+        return list(self.notifications)
+
+    def pending(self):
+
+        return [
+            notification
+            for notification in self.notifications
+            if not notification.sent
+        ]
+
+    def sent(self):
+
+        return [
+            notification
+            for notification in self.notifications
+            if notification.sent
+        ]
+
+    def count(self):
+
+        return len(self.notifications)
+
+    def pending_count(self):
+
+        return len(self.pending())
+
+    def sent_count(self):
+
+        return len(self.sent())
+
+    # ==================================================
+    # Statistics
+    # ==================================================
+
+    def statistics(self):
 
         return {
 
-            "channels": list(self.channels.keys()),
+            "total": self.count(),
 
-            "history": self.history.summary(),
+            "pending": self.pending_count(),
 
-            "metrics": self.metrics.summary(),
-
+            "sent": self.sent_count(),
         }
+
+    # ==================================================
+    # Clear
+    # ==================================================
+
+    def clear(self):
+
+        self.notifications.clear()
