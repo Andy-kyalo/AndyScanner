@@ -29,12 +29,19 @@ from backend.printer import (
 
 class ReportManager:
     """
-    Handles all scanner output.
+    Central reporting service.
+
+    Responsible for displaying scanner reports,
+    database reports and future monitoring reports.
     """
+
+    # ==================================================
+    # Scanner Report
+    # ==================================================
 
     def print_scan_report(self, candles, analyzer):
         """
-        Print complete scan report.
+        Print the complete scanner report.
         """
 
         print_analysis(analyzer)
@@ -51,61 +58,139 @@ class ReportManager:
         print_signal(analyzer)
         print_candles(candles)
 
+    # ==================================================
+    # Database Report
+    # ==================================================
+
     def print_database_report(self):
         """
-        Print database reports.
+        Print every database report.
         """
 
         with DatabaseManager(Config.DATABASE_PATH) as database:
 
-            print("\n========== Latest Scan From Database ==========")
+            self._print_latest_scan(database)
 
-            latest_scan = database.get_latest_scan()
+            self._print_scan_history(database)
 
-            if latest_scan:
-                print(f"ID          : {latest_scan[0]}")
-                print(f"Market      : {latest_scan[1]}")
-                print(f"Timeframe   : {latest_scan[2]}")
-                print(f"Scan Time   : {latest_scan[3]}")
-                print(f"Trend       : {latest_scan[4]}")
-                print(f"Signal      : {latest_scan[5]}")
-                print(f"Confidence  : {latest_scan[6]}%")
-            else:
-                print("No scans found.")
+            self._print_database_statistics(database)
 
-            print("===============================================")
+    # ==================================================
+    # Latest Scan
+    # ==================================================
 
-            print("\n========== Scan History ==========")
+    def _print_latest_scan(self, database):
+        """
+        Print the latest scan.
+        """
 
-            all_scans = database.get_all_scans()
+        print("\n========== Latest Scan From Database ==========")
 
-            if all_scans:
-                for scan in all_scans:
-                    print("----------------------------------")
-                    print(f"ID          : {scan[0]}")
-                    print(f"Market      : {scan[1]}")
-                    print(f"Timeframe   : {scan[2]}")
-                    print(f"Scan Time   : {scan[3]}")
-                    print(f"Trend       : {scan[4]}")
-                    print(f"Signal      : {scan[5]}")
-                    print(f"Confidence  : {scan[6]}%")
-            else:
-                print("No scan history available.")
+        latest_scan = database.get_latest_scan()
 
-            print("==================================")
+        if latest_scan:
 
-            print("\n========== Database Statistics ==========")
+            print(f"ID          : {latest_scan[0]}")
+            print(f"Market      : {latest_scan[1]}")
+            print(f"Timeframe   : {latest_scan[2]}")
+            print(f"Scan Time   : {latest_scan[3]}")
+            print(f"Trend       : {latest_scan[4]}")
+            print(f"Signal      : {latest_scan[5]}")
+            print(f"Confidence  : {latest_scan[6]}%")
 
-            statistics = database.get_database_statistics()
+        else:
 
-            print(f"Total Scans        : {statistics['total_scans']}")
-            print(f"Total Signals      : {statistics['total_signals']}")
-            print(f"BUY Signals        : {statistics['buy_signals']}")
-            print(f"SELL Signals       : {statistics['sell_signals']}")
-            print(f"WAIT Signals       : {statistics['wait_signals']}")
-            print(
-                f"Average Confidence : "
-                f"{statistics['average_confidence']}%"
-            )
+            print("No scans found.")
 
-            print("=========================================")
+        print("===============================================")
+
+    # ==================================================
+    # Scan History
+    # ==================================================
+
+    def _print_scan_history(self, database):
+        """
+        Print scan history.
+        """
+
+        print("\n========== Scan History ==========")
+
+        scans = database.get_all_scans()
+
+        if scans:
+
+            for scan in scans:
+
+                print("----------------------------------")
+                print(f"ID          : {scan[0]}")
+                print(f"Market      : {scan[1]}")
+                print(f"Timeframe   : {scan[2]}")
+                print(f"Scan Time   : {scan[3]}")
+                print(f"Trend       : {scan[4]}")
+                print(f"Signal      : {scan[5]}")
+                print(f"Confidence  : {scan[6]}%")
+
+        else:
+
+            print("No scan history available.")
+
+        print("==================================")
+
+    # ==================================================
+    # Database Statistics
+    # ==================================================
+
+    def _print_database_statistics(self, database):
+        """
+        Print database statistics.
+        """
+
+        print("\n========== Database Statistics ==========")
+
+        statistics = database.get_database_statistics()
+
+        print(f"Total Scans        : {statistics['total_scans']}")
+        print(f"Total Signals      : {statistics['total_signals']}")
+        print(f"BUY Signals        : {statistics['buy_signals']}")
+        print(f"SELL Signals       : {statistics['sell_signals']}")
+        print(f"WAIT Signals       : {statistics['wait_signals']}")
+        print(
+            f"Average Confidence : "
+            f"{statistics['average_confidence']}%"
+        )
+
+        print("=========================================")
+
+    # ==================================================
+    # Future Reports
+    # ==================================================
+
+    def print_provider_report(self):
+        """
+        Reserved for provider reporting.
+        """
+        pass
+
+    def print_session_report(self):
+        """
+        Reserved for scanner session reporting.
+        """
+        pass
+
+    def print_performance_report(self):
+        """
+        Reserved for performance reporting.
+        """
+        pass
+
+    def print_signal_statistics(self):
+        """
+        Reserved for signal statistics.
+        """
+        pass
+
+    def print_ai_report(self):
+        """
+        Reserved for AI learning reports.
+        """
+        pass
