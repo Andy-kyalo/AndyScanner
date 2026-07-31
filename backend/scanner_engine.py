@@ -20,6 +20,7 @@ from backend.provider_factory import ProviderFactory
 from backend.provider_retry import ProviderRetry
 from backend.provider_timeout import ProviderTimeout
 from database.database_manager import DatabaseManager
+from backend.scanner.scanner_manager import ScannerManager
 
 
 class ScannerEngine:
@@ -41,6 +42,7 @@ class ScannerEngine:
 
         self.config = scanner_config
         self.logger = Logger()
+        self.manager = ScannerManager(self)
 
     # ==================================================
     # Execute Scan
