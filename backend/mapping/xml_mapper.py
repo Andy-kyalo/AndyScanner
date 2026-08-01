@@ -10,7 +10,7 @@ Project: Andy Scanner
 import xml.etree.ElementTree as ET
 
 from backend.mapping.base_mapper import BaseMapper
-from backend.models.candle import Candle
+from backend.candle import Candle
 
 
 class XMLMapper(BaseMapper):

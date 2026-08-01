@@ -7,14 +7,15 @@ Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
+from datetime import datetime
+
 from backend.pipeline.pipeline_stage import PipelineStage
-from config.config import Config
 from database.database_manager import DatabaseManager
 
 
 class DatabaseStage(PipelineStage):
     """
-    Saves completed scan results into the database.
+    Saves scan results into the database.
     """
 
     def __init__(self):
@@ -22,32 +23,43 @@ class DatabaseStage(PipelineStage):
         super().__init__("Database Stage")
 
     def execute(self, context):
-        """
-        Persist scan results.
-        """
 
-        with DatabaseManager(Config.DATABASE_PATH) as database:
+        scan_time = datetime.now()
 
-            database.save_scan(
+        with DatabaseManager() as database:
 
-                market=context.market,
-
-                timeframe=context.timeframe,
-
-                trend=context.analyzer.trend(),
-
-                signal=context.signal.direction,
-
-                confidence=context.signal.confidence,
-
+            exists = database.scan_exists(
+                context.market,
+                context.timeframe,
+                scan_time.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
             )
 
-        context.set_metadata(
+            if not exists:
 
-            "database",
+                database.save_signal(
+                    context.signal
+                )
 
-            "SAVED",
+                database.save_scan(
+                    market=context.market,
+                    timeframe=context.timeframe,
+                    trend=context.trend,
+                    signal=context.signal.direction,
+                    confidence=context.signal.confidence,
+                )
 
-        )
+                context.set_metadata(
+                    "database",
+                    "SAVED",
+                )
+
+            else:
+
+                context.set_metadata(
+                    "database",
+                    "DUPLICATE",
+                )
 
         return context

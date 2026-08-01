@@ -13,8 +13,7 @@ from backend.signal_engine import SignalEngine
 
 class SignalStage(PipelineStage):
     """
-    Generates the trading signal from
-    the completed market analysis.
+    Generates trading signals from analysis.
     """
 
     def __init__(self):
@@ -22,15 +21,13 @@ class SignalStage(PipelineStage):
         super().__init__("Signal Stage")
 
     def execute(self, context):
-        """
-        Generate trading signal.
-        """
 
-        signal_engine = SignalEngine(
+        signal = SignalEngine(
             context.analyzer
-        )
+        ).generate()
 
-        signal = signal_engine.generate()
+        signal.market = context.market
+        signal.timeframe = context.timeframe
 
         context.signal = signal
 

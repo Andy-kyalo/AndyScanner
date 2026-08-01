@@ -8,28 +8,29 @@ Project: Andy Scanner
 """
 
 from backend.pipeline.pipeline_stage import PipelineStage
-from backend.validator.market_data_validator import MarketDataValidator
+from backend.market_validator import MarketValidator
 
 
 class ValidationStage(PipelineStage):
     """
-    Validates mapped market data before analysis.
+    Validates market data before analysis.
     """
 
     def __init__(self):
-
         super().__init__("Validation Stage")
 
-        self.validator = MarketDataValidator()
-
     def execute(self, context):
-        """
-        Validate mapped candle data.
-        """
 
-        self.validator.validate(
+        validator = MarketValidator(
             context.candles
         )
+
+        if not validator.validate():
+            raise ValueError(
+                "Market data validation failed."
+            )
+
+        context.validator = validator
 
         context.set_metadata(
             "validation",

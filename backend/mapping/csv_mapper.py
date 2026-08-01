@@ -8,7 +8,7 @@ Project: Andy Scanner
 """
 
 from backend.mapping.base_mapper import BaseMapper
-from backend.models.candle import Candle
+from backend.candle import Candle
 
 
 class CSVMapper(BaseMapper):

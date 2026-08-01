@@ -21,6 +21,8 @@ from backend.provider_retry import ProviderRetry
 from backend.provider_timeout import ProviderTimeout
 from database.database_manager import DatabaseManager
 from backend.scanner.scanner_manager import ScannerManager
+from backend.pipeline.pipeline_factory import PipelineFactory
+from backend.pipeline.pipeline_result import PipelineResult
 
 
 class ScannerEngine:
@@ -43,6 +45,26 @@ class ScannerEngine:
         self.config = scanner_config
         self.logger = Logger()
         self.manager = ScannerManager(self)
+        
+    # ==================================================
+# Execute Pipeline
+# ==================================================
+
+    def execute_pipeline(self) -> PipelineResult:
+        """
+        Execute the complete scanning pipeline.
+        """
+
+        factory = PipelineFactory()
+
+        pipeline = factory.create()
+
+        result = pipeline.run(
+            self.config.market,
+            self.config.timeframe,
+        )
+
+        return result
 
     # ==================================================
     # Execute Scan

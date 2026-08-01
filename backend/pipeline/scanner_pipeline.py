@@ -6,9 +6,10 @@ Scanner Pipeline.
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
-
+from backend.scanner.scanner_result import ScannerResult
 from backend.pipeline.pipeline_context import PipelineContext
 from backend.pipeline.pipeline_result import PipelineResult
+
 
 
 class ScannerPipeline:
@@ -122,9 +123,12 @@ class ScannerPipeline:
 
             result.set_failure(
                 error,
-                f"Pipeline failed during "
-                f"{context.get_metadata('current_stage')}",
-             )
+                (
+                    f"Pipeline failed during "
+                    f"{context.get_metadata('current_stage')} : "
+                    f"{error}"
+                ),
+               )
 
         result.add_metadata(
             "market",
@@ -141,11 +145,27 @@ class ScannerPipeline:
             len(self._stages),
         )
 
-        result.add_metadata(
-            "context",
-            context.summary(),
+        context.scan_result = ScannerResult(
+
+            market=context.market,
+
+            timeframe=context.timeframe,
+
+            candles=context.candles,
+
+            analyzer=context.analyzer,
+
+            signal=context.signal,
+
         )
 
+        result.add_metadata(
+
+            "scan_result",
+
+            context.scan_result,
+
+            )
         return result
     
 

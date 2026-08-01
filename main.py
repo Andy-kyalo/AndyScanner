@@ -12,13 +12,15 @@ from config.config import Config
 from backend.startup import print_startup
 from backend.config_validator import validate_config
 from backend.environment import print_environment
+
 from backend.health_checker import HealthChecker
+
 from backend.project_validator import ProjectValidator
 from backend.print_validator import print_project_validation
 
 from backend.scanner_engine import ScannerEngine
-from backend.scanner.scanner_manager import ScannerManager
 from backend.scanner_config import ScannerConfig
+
 from backend.report_manager import ReportManager
 
 from backend.register_providers import register_providers
@@ -28,19 +30,21 @@ from database.database_manager import DatabaseManager
 
 def main():
     """
-    Execute the complete Andy Scanner workflow.
+    Andy Scanner Entry Point.
     """
 
     # ==================================================
-    # Startup
+    # STARTUP
     # ==================================================
 
     print_startup()
+
     validate_config()
+
     print_environment()
 
     # ==================================================
-    # System Health
+    # HEALTH CHECK
     # ==================================================
 
     health = HealthChecker.run()
@@ -62,30 +66,13 @@ def main():
         f"{health['dependency_ok']}"
     )
 
-    if health["validator_errors"]:
-
-        print("\nConfiguration Errors:")
-
-        for error in health["validator_errors"]:
-
-            print(f" - {error}")
-
-    if health["missing_packages"]:
-
-        print("\nMissing Packages:")
-
-        for package in health["missing_packages"]:
-
-            print(f" - {package}")
-
     print("===================================\n")
 
     if not health["healthy"]:
-
         return
 
     # ==================================================
-    # Project Validation
+    # PROJECT VALIDATION
     # ==================================================
 
     project = ProjectValidator().validate()
@@ -93,26 +80,23 @@ def main():
     print_project_validation(project)
 
     if not project["valid"]:
-
         return
 
     # ==================================================
-    # Initialize Database
+    # DATABASE INITIALIZATION
     # ==================================================
 
-    with DatabaseManager(
-        Config.DATABASE_PATH,
-    ):
+    with DatabaseManager(Config.DATABASE_PATH):
         pass
 
     # ==================================================
-    # Register Providers
+    # REGISTER PROVIDERS
     # ==================================================
 
     provider_manager = register_providers()
 
     # ==================================================
-    # Scanner Configuration
+    # SCANNER CONFIGURATION
     # ==================================================
 
     scanner_config = ScannerConfig(
@@ -121,35 +105,39 @@ def main():
     )
 
     # ==================================================
-    # Scanner Engine
+    # CREATE ENGINE
     # ==================================================
 
-    engine = ScannerEngine(
-        scanner_config,
-    )
+    engine = ScannerEngine(scanner_config)
 
     # ==================================================
-    # Scanner Manager
+    # EXECUTE PIPELINE
     # ==================================================
 
-    manager = ScannerManager()
+    pipeline_result = engine.execute_pipeline()
 
-    manager.attach_engine(engine)
+    print("\n========== PIPELINE TEST ==========")
 
-    # ==================================================
-    # Execute Scan
-    # ==================================================
+    print(f"Success : {pipeline_result.success}")
 
-    result = manager.run(
-        scanner_config.market,
-        scanner_config.timeframe,
-    )
+    print(f"Message : {pipeline_result.message}")
 
-    candles = result["candles"]
-    analyzer = result["analyzer"]
+    print("===================================")
+
+    if not pipeline_result.success:
+        return
 
     # ==================================================
-    # Reports
+    # PIPELINE CONTEXT
+    # ==================================================
+
+    scan_result = pipeline_result.metadata["scan_result"]
+
+    candles = scan_result.candles
+    analyzer = scan_result.analyzer
+
+    # ==================================================
+    # REPORTS
     # ==================================================
 
     report = ReportManager()
@@ -162,16 +150,12 @@ def main():
     report.print_database_report()
 
     # ==================================================
-    # Scanner Summary
+    # SESSION SUMMARY
     # ==================================================
 
-    summary = manager.summary()
+    summary = scan_result.summary()
 
     print("\n========== Scanner Session ==========")
-
-    print(
-        f"State        : {summary['state']}"
-    )
 
     print(
         f"Market       : {summary['market']}"
@@ -182,21 +166,25 @@ def main():
     )
 
     print(
-        f"Started      : {summary['started_at']}"
+        f"Candles      : {summary['candles']}"
     )
 
     print(
-        f"Finished     : {summary['finished_at']}"
+        f"Trend        : {summary['trend']}"
     )
 
     print(
-        f"Duration     : {summary['duration']} sec"
+        f"Signal       : {summary['signal']}"
+    )
+
+    print(
+        f"Confidence   : {summary['confidence']}%"
     )
 
     print("=====================================")
 
     # ==================================================
-    # Provider Metrics
+    # PROVIDER METRICS
     # ==================================================
 
     metrics = provider_manager.metrics_report()
@@ -204,28 +192,23 @@ def main():
     print("\n========== Provider Metrics ==========")
 
     print(
-        f"Requests     : "
-        f"{metrics['total_requests']}"
+        f"Requests     : {metrics['total_requests']}"
     )
 
     print(
-        f"Successful   : "
-        f"{metrics['successful_requests']}"
+        f"Successful   : {metrics['successful_requests']}"
     )
 
     print(
-        f"Failed       : "
-        f"{metrics['failed_requests']}"
+        f"Failed       : {metrics['failed_requests']}"
     )
 
     print(
-        f"Success Rate : "
-        f"{metrics['success_rate']}%"
+        f"Success Rate : {metrics['success_rate']}%"
     )
 
     print(
-        f"Average Time : "
-        f"{metrics['average_time']} sec"
+        f"Average Time : {metrics['average_time']} sec"
     )
 
     print("======================================")

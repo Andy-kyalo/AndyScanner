@@ -38,6 +38,8 @@ class PipelineContext:
 
         self.analyzer = None
         self.signal = None
+        
+        self.scan_result = None
 
         self.session = None
         self.report = None
@@ -50,6 +52,8 @@ class PipelineContext:
 
         self.started_at = None
         self.finished_at = None
+        
+        
 
     # ==================================================
     # Start

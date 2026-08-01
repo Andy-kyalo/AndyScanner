@@ -8,13 +8,12 @@ Project: Andy Scanner
 """
 
 from backend.pipeline.pipeline_stage import PipelineStage
-from backend.analyzer.market_analyzer import MarketAnalyzer
+from backend.analyzer import Analyzer
 
 
 class AnalysisStage(PipelineStage):
     """
-    Performs market analysis using mapped
-    and validated candle data.
+    Performs market analysis.
     """
 
     def __init__(self):
@@ -22,29 +21,18 @@ class AnalysisStage(PipelineStage):
         super().__init__("Analysis Stage")
 
     def execute(self, context):
-        """
-        Analyze market candles.
-        """
 
-        analyzer = MarketAnalyzer(
+        analyzer = Analyzer(
             context.candles
         )
 
         context.analyzer = analyzer
 
+        context.trend = analyzer.trend()
+
         context.set_metadata(
             "trend",
-            analyzer.trend(),
-        )
-
-        context.set_metadata(
-            "highest_high",
-            analyzer.highest_high(),
-        )
-
-        context.set_metadata(
-            "lowest_low",
-            analyzer.lowest_low(),
+            context.trend,
         )
 
         return context
