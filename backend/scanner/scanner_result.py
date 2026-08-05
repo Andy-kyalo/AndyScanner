@@ -43,7 +43,7 @@ class ScannerResult:
 
             "candles": len(self.candles),
 
-            "trend": self.analyzer.trend,
+            "trend": self.analyzer.trend(),
 
             "signal": self.signal.direction,
 

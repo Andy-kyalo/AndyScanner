@@ -1,132 +1,114 @@
 """
 provider_manager.py
 
-Central manager for market data providers.
+Professional Provider Manager for Andy Scanner.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
+Version: 0.5.0
 """
-
-from backend.provider_registry import ProviderRegistry
-from backend.provider_health import ProviderHealth
-from backend.provider_metrics import ProviderMetrics
-from backend.provider_exceptions import (
-    ProviderNotFoundError,
-)
 
 
 class ProviderManager:
     """
-    Coordinates provider registration,
-    provider creation,
-    provider failover,
-    health monitoring,
-    and performance metrics.
+    Manages all available market data providers.
     """
 
     def __init__(self):
-
-        self.registry = ProviderRegistry()
-        self.metrics = ProviderMetrics()
-
-    # ==================================================
-    # Registration
-    # ==================================================
-
-    def register(
-        self,
-        name,
-        provider_class,
-    ):
-
-        self.registry.register(
-            name,
-            provider_class,
-        )
+        self._providers = {}
+        self._active_provider = None
 
     # ==================================================
-    # Provider Creation (Automatic Failover)
+    # Register Provider
     # ==================================================
 
-    def create(self, config):
+    def register(self, name, provider_class):
         """
-        Create the first healthy provider from the
-        configured provider priority list.
+        Register a provider class.
         """
 
-        last_error = None
+        self._providers[name] = provider_class
 
-        for provider_name in config.provider_priority:
+        if self._active_provider is None:
+            self._active_provider = name
 
-            provider_class = self.registry.get(provider_name)
+    # ==================================================
+    # Provider Exists
+    # ==================================================
 
-            if provider_class is None:
-                continue
+    def provider_exists(self, name):
+        """
+        Check whether a provider is already registered.
+        """
 
-            try:
+        return name in self._providers
 
-                provider = provider_class(config)
+    # ==================================================
+    # Get Provider Class
+    # ==================================================
 
-                health = ProviderHealth(provider)
+    def get_provider(self, name):
+        """
+        Return a registered provider class.
+        """
 
-                if health.check():
+        return self._providers.get(name)
 
-                    return provider
+    # ==================================================
+    # Active Provider
+    # ==================================================
 
-            except Exception as error:
+    def get_active_provider_name(self):
+        """
+        Return the active provider name.
+        """
 
-                last_error = error
-                continue
+        return self._active_provider
 
-        if last_error:
+    def get_active_provider(self):
+        """
+        Return the active provider class.
+        """
 
-            raise RuntimeError(
-                f"No available provider. Last error: {last_error}"
+        if self._active_provider is None:
+            return None
+
+        return self._providers[self._active_provider]
+
+    # ==================================================
+    # Set Active Provider
+    # ==================================================
+
+    def set_active_provider(self, name):
+        """
+        Change the active provider.
+        """
+
+        if not self.provider_exists(name):
+            raise ValueError(
+                f"Provider '{name}' is not registered."
             )
 
-        raise ProviderNotFoundError(
-            "No registered providers are available."
-        )
+        self._active_provider = name
 
     # ==================================================
-    # Health
+    # Registered Providers
     # ==================================================
 
-    def health(self, provider):
+    def registered_providers(self):
+        """
+        Return a list of registered providers.
+        """
 
-        return ProviderHealth(provider)
-
-    # ==================================================
-    # Metrics
-    # ==================================================
-
-    def record_success(self):
-
-        self.metrics.record_success()
-
-    def record_failure(self):
-
-        self.metrics.record_failure()
-
-    def metrics_report(self):
-
-        return self.metrics.report()
+        return list(self._providers.keys())
 
     # ==================================================
-    # Registry Information
+    # Total Providers
     # ==================================================
 
-    def providers(self):
+    def total_providers(self):
+        """
+        Return total registered providers.
+        """
 
-        return self.registry.names()
-
-    def provider_exists(
-        self,
-        name,
-    ):
-
-        return self.registry.exists(name)
-
-    def provider_count(self):
-
-        return self.registry.count()
+        return len(self._providers)

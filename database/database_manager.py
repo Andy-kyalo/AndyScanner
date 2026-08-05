@@ -233,7 +233,10 @@ class DatabaseManager:
 
         return cursor.fetchone()
 
-    def get_all_scans(self):
+    def get_all_scans(
+        self,
+        limit=20,
+    ):
         """
         Return scan history.
         """
@@ -252,6 +255,7 @@ class DatabaseManager:
                 confidence
             FROM scans
             ORDER BY id DESC
+            LIMIT 15
             """
         )
 

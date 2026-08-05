@@ -5,6 +5,7 @@ Registers all available market data providers.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
+Version: 0.5.0
 """
 
 from backend.provider_service import get_provider_manager
