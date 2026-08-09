@@ -116,13 +116,44 @@ class APIProvider(BaseProvider):
 
     def load(self):
         """
-        Load and map market data.
+        Load market data from the configured API
+        and convert it into Candle objects.
 
-        Concrete providers should normally override
-        the API URL/request details.
+        Returns:
+            list[Candle]
         """
 
-        raise NotImplementedError(
-            "APIProvider.load() requires a concrete "
-            "API provider implementation."
+        api_url = getattr(
+            self.config,
+            "api_url",
+            None,
         )
+
+        api_key = getattr(
+            self.config,
+            "api_key",
+            None,
+        )
+
+        if not api_url:
+            raise ValueError(
+                "API URL is not configured."
+            )
+
+        raw_response = self.request(
+            url=api_url,
+            api_key=api_key,
+            limit=500,
+        )
+
+        if isinstance(raw_response, dict):
+            raw_data = raw_response.get("data")
+        else:
+            raw_data = raw_response
+
+        if raw_data is None:
+            raise ValueError(
+                "API response contains no market data."
+            )
+
+        return self.map_candles(raw_data)

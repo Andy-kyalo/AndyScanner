@@ -22,6 +22,8 @@ class ScannerConfig:
         timeframe,
         data_source="CSV",
         provider_priority=None,
+        api_url=None,
+        api_key=None,
     ):
 
         self.market = market
@@ -29,6 +31,10 @@ class ScannerConfig:
 
         # Default provider
         self.data_source = data_source.upper()
+
+        # API configuration
+        self.api_url = api_url
+        self.api_key = api_key
 
         # Provider failover order
         if provider_priority is None:

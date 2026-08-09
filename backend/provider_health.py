@@ -3,36 +3,67 @@ provider_health.py
 
 Provider Health Checker.
 
-Verifies that the selected market data provider
-is operational before a scan begins.
-
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
+
+from datetime import datetime
 
 from backend.logger import Logger
 
 
 class ProviderHealth:
-    """
-    Performs provider health checks.
-    """
 
     def __init__(self, provider):
+
         self.provider = provider
         self.logger = Logger()
+
+        self.status = "UNKNOWN"
+
+        self.total_checks = 0
+        self.successful_checks = 0
+        self.failed_checks = 0
+        self.consecutive_failures = 0
+
+        self.last_success = None
+        self.last_failure = None
+        self.last_error = None
 
     # ==================================================
     # Health Check
     # ==================================================
 
-    def check(self) -> bool:
-        """
-        Verify provider readiness.
-        """
+    def check(self):
+
+        self.total_checks += 1
 
         try:
+
+            # Basic provider readiness validation.
+            if self.provider is None:
+                raise ValueError(
+                    "Provider instance is None."
+                )
+
+            if not hasattr(
+                self.provider,
+                "load",
+            ):
+                raise ValueError(
+                    "Provider does not implement load()."
+                )
+
+            # Actually test the provider.
             self.provider.load()
+
+            self.status = "HEALTHY"
+
+            self.successful_checks += 1
+            self.consecutive_failures = 0
+
+            self.last_success = datetime.now()
+            self.last_error = None
 
             self.logger.info(
                 "Provider",
@@ -43,6 +74,14 @@ class ProviderHealth:
 
         except Exception as error:
 
+            self.status = "UNHEALTHY"
+
+            self.failed_checks += 1
+            self.consecutive_failures += 1
+
+            self.last_failure = datetime.now()
+            self.last_error = str(error)
+
             self.logger.error_log(
                 f"Provider Health Failed: {error}"
             )
@@ -50,15 +89,45 @@ class ProviderHealth:
             return False
 
     # ==================================================
-    # Provider Information
+    # Status
+    # ==================================================
+
+    def is_healthy(self):
+
+        return self.status == "HEALTHY"
+
+    @property
+    def healthy(self):
+
+        return self.is_healthy()
+
+    # ==================================================
+    # Information
     # ==================================================
 
     def info(self):
-        """
-        Return provider information.
-        """
 
         return {
             "provider": self.provider.name,
-            "healthy": self.check(),
+            "status": self.status,
+            "healthy": self.is_healthy(),
+            "total_checks": self.total_checks,
+            "successful_checks": self.successful_checks,
+            "failed_checks": self.failed_checks,
+            "consecutive_failures":
+                self.consecutive_failures,
+            "last_success": self.last_success,
+            "last_failure": self.last_failure,
+            "last_error": self.last_error,
         }
+
+    # ==================================================
+    # Report
+    # ==================================================
+
+    def report(self):
+        """
+        Backward-compatible alias for info().
+        """
+
+        return self.info()

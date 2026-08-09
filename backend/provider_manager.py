@@ -225,3 +225,45 @@ class ProviderManager:
             "failed_requests": self._failed_requests,
             "success_rate": round(success_rate, 2),
         }
+        
+    # ==================================================
+    # Create Specific Provider
+    # ==================================================
+
+    def create_provider(self, name, config):
+        """
+        Create a specific registered provider by name.
+
+        Used by the provider failover system.
+        """
+
+        provider_name = name.upper()
+
+        provider_class = self.get_provider(
+            provider_name
+        )
+
+        if provider_class is None:
+
+            available = ", ".join(
+                self.registered_providers()
+            )
+
+            raise ProviderNotFoundError(
+                f"Provider '{provider_name}' is not registered. "
+                f"Available providers: {available}"
+            )
+
+        self._total_requests += 1
+
+        try:
+
+            provider = provider_class(config)
+
+            return provider
+
+        except Exception:
+
+            self._failed_requests += 1
+
+            raise

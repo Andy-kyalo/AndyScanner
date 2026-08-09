@@ -3,45 +3,34 @@ api_provider.py
 
 API Market Data Provider.
 
-Concrete provider built on the shared REST API infrastructure.
+Concrete API provider used by Andy Scanner.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from backend.api_provider import APIProvider as RESTAPIProvider
+from backend.api_provider import APIProvider as BaseAPIProvider
 
 
-class APIProvider(RESTAPIProvider):
+class APIProvider(BaseAPIProvider):
     """
-    Concrete REST API market-data provider.
+    Concrete API provider.
 
-    Uses the shared API infrastructure for:
-
-    - API sessions
-    - response caching
-    - retry handling
-    - rate limiting
-    - connection pooling
-    - request building
-    - response parsing
+    Uses the shared API infrastructure from
+    backend.api_provider.APIProvider.
     """
 
     def __init__(self, config):
         super().__init__(config)
 
     # ==================================================
-    # Load Market Data
+    # Load
     # ==================================================
 
     def load(self):
         """
-        Load market data from the configured API.
-
-        The concrete endpoint will be connected in
-        the next stage.
+        Load market data through the configured API
+        and convert it into Candle objects.
         """
 
-        raise NotImplementedError(
-            "Concrete API endpoint has not been configured yet."
-        )
+        return super().load()

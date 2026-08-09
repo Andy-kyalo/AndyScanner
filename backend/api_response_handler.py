@@ -33,13 +33,11 @@ class APIResponseHandler:
                 message="Response is None.",
             )
 
-        if response.status_code < 200 or response.status_code >= 300:
+        if response.status_code != 200:
             raise APIError(
                 code=response.status_code,
-                message=(
-                    f"HTTP {response.status_code}: "
-                    f"{response.text}"
-                ),
+                message="API request failed.",
+                details=response.text,
             )
 
         return response
@@ -51,10 +49,12 @@ class APIResponseHandler:
     @staticmethod
     def parse(response):
         """
-        Validate and parse a JSON response.
+        Validate and parse JSON response.
         """
 
-        APIResponseHandler.validate(response)
+        response = APIResponseHandler.validate(
+            response
+        )
 
         try:
 

@@ -13,13 +13,13 @@ from backend.mapping.mapper_factory import MapperFactory
 
 class MappingStage(PipelineStage):
     """
-    Converts provider output into Candle objects.
+    Converts raw provider output into Candle objects.
 
     If the provider already returns Candle objects,
     mapping is skipped.
     """
 
-    def __init__(self, mapper_type="csv"):
+    def __init__(self, mapper_type="json"):
 
         super().__init__("Mapping Stage")
 
@@ -27,11 +27,8 @@ class MappingStage(PipelineStage):
 
     def execute(self, context):
 
-        # Provider already produced Candle objects
-        if (
-            hasattr(context, "candles")
-            and context.candles
-        ):
+        # Provider already produced Candle objects.
+        if context.candles is not None:
 
             context.set_metadata(
                 "mapper",
@@ -44,6 +41,13 @@ class MappingStage(PipelineStage):
             )
 
             return context
+
+        # Otherwise map raw provider data.
+        if context.raw_data is None:
+
+            raise ValueError(
+                "Mapping Stage received no raw market data."
+            )
 
         mapper = MapperFactory.create(
             self.mapper_type
