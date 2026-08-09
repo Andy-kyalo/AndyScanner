@@ -33,9 +33,13 @@ class ProviderFactory:
 
         provider_name = config.data_source.upper()
 
-        if not self.manager.provider_exists(provider_name):
+        if not self.manager.provider_exists(
+            provider_name
+        ):
 
-            available = ", ".join(self.manager.providers())
+            available = ", ".join(
+                self.manager.registered_providers()
+            )
 
             raise ProviderNotFoundError(
                 f"Provider '{provider_name}' is not registered. "

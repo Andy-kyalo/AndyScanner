@@ -10,6 +10,7 @@ Project: Andy Scanner
 """
 
 from backend.providers.base_provider import BaseProvider
+
 from backend.api_session import APISession
 from backend.api_cache import APICache
 from backend.api_retry_handler import APIRetryHandler
@@ -18,15 +19,18 @@ from backend.api_request_builder import APIRequestBuilder
 from backend.api_response_handler import APIResponseHandler
 from backend.api_connection_pool import APIConnectionPool
 
+from backend.mapping.json_mapper import JSONMapper
+
 
 class APIProvider(BaseProvider):
     """
     Base implementation for REST API providers.
 
-    Concrete broker providers should inherit from this class.
+    Concrete API providers can inherit from this class.
     """
 
     def __init__(self, config):
+
         super().__init__(config)
 
         self.session = APISession()
@@ -35,13 +39,16 @@ class APIProvider(BaseProvider):
         self.rate_limiter = APIRateLimiter()
         self.pool = APIConnectionPool()
 
+        self.mapper = JSONMapper()
+
     # ==================================================
     # Request
     # ==================================================
 
     def request(self, url, api_key=None, limit=100):
         """
-        Execute an API request.
+        Execute an API request and return
+        the raw JSON response.
         """
 
         cache_key = (
@@ -80,12 +87,28 @@ class APIProvider(BaseProvider):
 
             data = APIResponseHandler.parse(response)
 
-            self.cache.put(cache_key, data)
+            self.cache.put(
+                cache_key,
+                data,
+            )
 
             return data
 
         finally:
+
             self.pool.release(session)
+
+    # ==================================================
+    # Map JSON
+    # ==================================================
+
+    def map_candles(self, raw_data):
+        """
+        Convert raw JSON market data
+        into Candle objects.
+        """
+
+        return self.mapper.map(raw_data)
 
     # ==================================================
     # Load
@@ -93,9 +116,13 @@ class APIProvider(BaseProvider):
 
     def load(self):
         """
-        Must be implemented by concrete providers.
+        Load and map market data.
+
+        Concrete providers should normally override
+        the API URL/request details.
         """
 
         raise NotImplementedError(
-            "API providers must implement load()."
+            "APIProvider.load() requires a concrete "
+            "API provider implementation."
         )

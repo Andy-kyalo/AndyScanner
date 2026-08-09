@@ -27,10 +27,19 @@ class APIResponseHandler:
         Validate an HTTP response.
         """
 
-        if response.status_code != 200:
+        if response is None:
             raise APIError(
-                f"HTTP {response.status_code}: "
-                f"{response.text}"
+                code=500,
+                message="Response is None.",
+            )
+
+        if response.status_code < 200 or response.status_code >= 300:
+            raise APIError(
+                code=response.status_code,
+                message=(
+                    f"HTTP {response.status_code}: "
+                    f"{response.text}"
+                ),
             )
 
         return response
@@ -42,9 +51,19 @@ class APIResponseHandler:
     @staticmethod
     def parse(response):
         """
-        Parse JSON response.
+        Validate and parse a JSON response.
         """
 
         APIResponseHandler.validate(response)
 
-        return response.json()
+        try:
+
+            return response.json()
+
+        except ValueError as error:
+
+            raise APIError(
+                code=500,
+                message="Invalid JSON response.",
+                details=str(error),
+            )

@@ -42,7 +42,7 @@ class JSONMapper(BaseMapper):
             candles.append(
                 Candle(
                     time=item["time"],
-                    open=float(item["open"]),
+                    open_price=float(item["open"]),
                     high=float(item["high"]),
                     low=float(item["low"]),
                     close=float(item["close"]),

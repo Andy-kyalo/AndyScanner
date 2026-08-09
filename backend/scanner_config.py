@@ -8,6 +8,9 @@ Project: Andy Scanner
 """
 
 
+from backend.timeframe_manager import TimeframeManager
+
+
 class ScannerConfig:
     """
     Holds runtime scanner configuration.
@@ -22,7 +25,7 @@ class ScannerConfig:
     ):
 
         self.market = market
-        self.timeframe = timeframe
+        self.timeframe = TimeframeManager.validate(timeframe)
 
         # Default provider
         self.data_source = data_source.upper()

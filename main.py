@@ -313,10 +313,7 @@ def main():
         f"{metrics['success_rate']}%"
     )
 
-    print(
-        f"Average Time : "
-        f"{metrics['average_time']} sec"
-    )
+
 
     print("======================================")
 

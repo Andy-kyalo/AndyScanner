@@ -50,7 +50,7 @@ class MarketValidator:
 
         ]
 
-    def validate(self, candles):
+    def validate(self, candles, timeframe):
         """
         Execute all validators.
 
@@ -61,8 +61,16 @@ class MarketValidator:
 
         for validator in self.validators:
 
-            valid, message = validator.validate(candles)
-
+            if isinstance(validator, TimeframeValidator):
+                valid, message = validator.validate(
+                    candles,
+                    timeframe,
+                )
+            else:
+                valid, message = validator.validate(
+                    candles,
+                )
+ 
             if not valid:
                 return False, message
 

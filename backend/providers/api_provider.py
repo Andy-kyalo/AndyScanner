@@ -3,21 +3,28 @@ api_provider.py
 
 API Market Data Provider.
 
-Loads market data from external APIs.
+Concrete provider built on the shared REST API infrastructure.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from backend.providers.base_provider import BaseProvider
+from backend.api_provider import APIProvider as RESTAPIProvider
 
 
-class APIProvider(BaseProvider):
+class APIProvider(RESTAPIProvider):
     """
-    Loads market data from an external API.
+    Concrete REST API market-data provider.
 
-    This provider is a placeholder for future
-    live market integrations.
+    Uses the shared API infrastructure for:
+
+    - API sessions
+    - response caching
+    - retry handling
+    - rate limiting
+    - connection pooling
+    - request building
+    - response parsing
     """
 
     def __init__(self, config):
@@ -29,12 +36,12 @@ class APIProvider(BaseProvider):
 
     def load(self):
         """
-        Load market data from an external API.
+        Load market data from the configured API.
 
-        Returns:
-            list[Candle]
+        The concrete endpoint will be connected in
+        the next stage.
         """
 
         raise NotImplementedError(
-            "APIProvider has not been implemented yet."
+            "Concrete API endpoint has not been configured yet."
         )
