@@ -8,10 +8,14 @@ Project: Andy Scanner
 """
 
 from backend.pipeline.pipeline_stage import PipelineStage
+
 from backend.provider_retry import ProviderRetry
 from backend.provider_timeout import ProviderTimeout
-from backend.provider_recovery import ProviderRecovery
-from backend.provider_health_manager import ProviderHealthManager
+
+from backend.provider_health_manager import (
+    ProviderHealthManager,
+)
+
 from backend.register_providers import register_providers
 from backend.scanner_config import ScannerConfig
 
@@ -21,28 +25,21 @@ class ProviderStage(PipelineStage):
     Responsible for obtaining market data
     from the configured provider.
 
-    Supports provider health checks,
-    provider recovery, cooldown,
-    and provider failover.
+    Supports provider health checks and
+    provider failover using the configured
+    provider priority.
     """
 
     def __init__(self):
-        super().__init__("Provider Stage")
 
-        # Provider recovery manager.
-        #
-        # It belongs to the stage so cooldown state
-        # can survive between scans using the same
-        # ProviderStage instance.
-        self.recovery = ProviderRecovery(
-            cooldown=60.0,
-        )
+        super().__init__("Provider Stage")
 
     # ==================================================
     # Execute
     # ==================================================
 
     def execute(self, context):
+
         provider_manager = register_providers()
 
         data_source = context.get_metadata(
@@ -65,8 +62,11 @@ class ProviderStage(PipelineStage):
         ]
 
         for provider_name in configured_priority:
+
             provider_name = provider_name.upper()
+
             if provider_name not in provider_priority:
+
                 provider_priority.append(
                     provider_name
                 )
@@ -100,16 +100,17 @@ class ProviderStage(PipelineStage):
         )
 
         health_results = {}
-        recovery_results = {}
 
         # ==================================================
         # Provider Failover
         # ==================================================
 
         for provider_name in provider_priority:
+
             if not provider_manager.provider_exists(
                 provider_name
             ):
+
                 failures.append(
                     {
                         "provider": provider_name,
@@ -123,70 +124,14 @@ class ProviderStage(PipelineStage):
                     provider_name
                 ] = False
 
-                recovery_results[
-                    provider_name
-                ] = {
-                    "status": "UNREGISTERED",
-                }
-
                 continue
-
-            # --------------------------------------------------
-            # Recovery / Cooldown Check
-            # --------------------------------------------------
-
-            if self.recovery.is_in_cooldown(
-                provider_name
-            ):
-                remaining = (
-                    self.recovery.cooldown_remaining(
-                        provider_name
-                    )
-                )
-
-                recovery_results[
-                    provider_name
-                ] = {
-                    "status": "COOLDOWN",
-                    "cooldown_remaining": remaining,
-                }
-
-                health_results[
-                    provider_name
-                ] = False
-
-                failures.append(
-                    {
-                        "provider": provider_name,
-                        "error": (
-                            "Provider is in cooldown."
-                        ),
-                    }
-                )
-
-                continue
-
-            # Provider is available for testing.
-            self.recovery.record_recovery_attempt(
-                provider_name
-            )
-
-            recovery_results[
-                provider_name
-            ] = {
-                "status": "AVAILABLE",
-                "cooldown_remaining": 0.0,
-            }
-
-            # Record that this provider was attempted
-            attempts.append(
-                provider_name
-            )
 
             # --------------------------------------------------
             # Health Check
             # --------------------------------------------------
-
+            attempts.append(
+                provider_name
+            )
             config.data_source = provider_name
 
             healthy = health_manager.check(
@@ -199,17 +144,6 @@ class ProviderStage(PipelineStage):
             ] = healthy
 
             if not healthy:
-                # Remember the failure so the provider
-                # enters cooldown.
-                self.recovery.record_failure(
-                    provider_name
-                )
-
-                recovery_results[
-                    provider_name
-                ] = self.recovery.info(
-                    provider_name
-                )
 
                 failures.append(
                     {
@@ -226,7 +160,12 @@ class ProviderStage(PipelineStage):
             # Provider Attempt
             # --------------------------------------------------
 
+            attempts.append(
+                provider_name
+            )
+
             try:
+
                 provider = (
                     provider_manager.create_provider(
                         provider_name,
@@ -249,35 +188,18 @@ class ProviderStage(PipelineStage):
                     )
                 )
 
-                # --------------------------------------------------
                 # Provider succeeded.
-                # --------------------------------------------------
-
                 selected_provider = provider
 
                 provider_manager.record_success()
 
-                self.recovery.record_recovery(
-                    provider_name
-                )
-
-                recovery_results[
-                    provider_name
-                ] = {
-                    "status": "AVAILABLE",
-                    "cooldown_remaining": 0.0,
-                }
-
                 break
 
             except Exception as error:
+
                 last_exception = error
 
                 provider_manager.record_failure()
-
-                self.recovery.record_failure(
-                    provider_name
-                )
 
                 failures.append(
                     {
@@ -286,21 +208,12 @@ class ProviderStage(PipelineStage):
                     }
                 )
 
-                recovery_results[
-                    provider_name
-                ] = {
-                    "status": "COOLDOWN",
-                    "cooldown_remaining":
-                        self.recovery.cooldown_remaining(
-                            provider_name
-                        ),
-                }
-
         # ==================================================
         # All Providers Failed
         # ==================================================
 
         if selected_provider is None:
+
             context.set_metadata(
                 "provider_attempts",
                 attempts,
@@ -322,11 +235,6 @@ class ProviderStage(PipelineStage):
             )
 
             context.set_metadata(
-                "provider_recovery",
-                recovery_results,
-            )
-
-            context.set_metadata(
                 "health_checked",
                 True,
             )
@@ -337,6 +245,7 @@ class ProviderStage(PipelineStage):
             )
 
             if last_exception is not None:
+
                 raise last_exception
 
             raise RuntimeError(
@@ -385,23 +294,21 @@ class ProviderStage(PipelineStage):
         )
 
         context.set_metadata(
-            "provider_recovery",
-            recovery_results,
-        )
-
-        context.set_metadata(
             "health_checked",
             True,
         )
 
         context.set_metadata(
             "failover_used",
-            attempts[0] != selected_provider.name.replace(
-                "Provider",
-                ""
-            )
-            if attempts
-            else False,
+            (
+                attempts[0]
+                != selected_provider.name.replace(
+                    "Provider",
+                    ""
+                )
+                if attempts
+                else False
+            ),
         )
 
         context.set_metadata(

@@ -24,11 +24,16 @@ class ProviderHealthManager:
     # Get Provider Health
     # ==================================================
 
-    def get_health(self, provider_name):
+    def get_health(
+        self,
+        provider_name,
+        config=None,
+    ):
         """
         Return the ProviderHealth object for a provider.
 
-        Creates the health object if it does not already exist.
+        If config is supplied, it is used to create the
+        provider instance used by the health checker.
         """
 
         provider_name = provider_name.upper()
@@ -42,9 +47,9 @@ class ProviderHealthManager:
 
         if provider_name not in self._health:
 
-            # ProviderHealth requires a provider instance.
             provider = self._create_provider(
-                provider_name
+                provider_name,
+                config,
             )
 
             if provider is None:
@@ -60,12 +65,15 @@ class ProviderHealthManager:
     # Create Provider
     # ==================================================
 
-    def _create_provider(self, provider_name):
+    def _create_provider(
+        self,
+        provider_name,
+        config=None,
+    ):
         """
         Create a provider instance for health checking.
 
-        Uses the registered provider class with a minimal
-        configuration object when possible.
+        Uses the real ScannerConfig when supplied.
         """
 
         provider_class = self.provider_manager.get_provider(
@@ -75,7 +83,7 @@ class ProviderHealthManager:
         if provider_class is None:
             return None
 
-        try:
+        if config is None:
 
             config = type(
                 "HealthConfig",
@@ -92,21 +100,35 @@ class ProviderHealthManager:
                 },
             )()
 
+        else:
+
+            config.data_source = provider_name
+
+        try:
+
             return provider_class(config)
 
         except Exception:
+
             return None
 
     # ==================================================
     # Check Provider
     # ==================================================
 
-    def check(self, provider_name):
+    def check(
+        self,
+        provider_name,
+        config=None,
+    ):
         """
         Perform a health check for one provider.
         """
 
-        health = self.get_health(provider_name)
+        health = self.get_health(
+            provider_name,
+            config,
+        )
 
         if health is None:
             return False
@@ -117,12 +139,9 @@ class ProviderHealthManager:
     # Check All Providers
     # ==================================================
 
-    def check_all(self):
+    def check_all(self, config=None):
         """
         Perform health checks for all registered providers.
-
-        Returns:
-            dict containing provider health status.
         """
 
         results = {}
@@ -131,10 +150,15 @@ class ProviderHealthManager:
             self.provider_manager.registered_providers()
         ):
 
-            health = self.get_health(provider_name)
+            health = self.get_health(
+                provider_name,
+                config,
+            )
 
             if health is None:
+
                 results[provider_name] = False
+
                 continue
 
             results[provider_name] = health.check()
@@ -145,12 +169,19 @@ class ProviderHealthManager:
     # Is Healthy
     # ==================================================
 
-    def is_healthy(self, provider_name):
+    def is_healthy(
+        self,
+        provider_name,
+        config=None,
+    ):
         """
         Return whether a provider is currently healthy.
         """
 
-        health = self.get_health(provider_name)
+        health = self.get_health(
+            provider_name,
+            config,
+        )
 
         if health is None:
             return False
@@ -163,7 +194,8 @@ class ProviderHealthManager:
 
     def report(self):
         """
-        Return health information for all managed providers.
+        Return health information for all
+        providers that have been checked.
         """
 
         report = {}
