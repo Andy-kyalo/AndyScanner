@@ -26,28 +26,29 @@ class TimeframeValidator:
         "D1": 86400,
     }
 
-    def __init__(self, timeframe):
-        self.timeframe = timeframe.upper()
-
     # ==================================================
     # Validation
     # ==================================================
 
-    def validate(self, candles):
+    def validate(self, candles, timeframe):
         """
-        Validate candle spacing.
+        Validate candle spacing against the requested timeframe.
 
         Returns
         -------
         tuple(bool, str)
         """
 
-        expected_gap = self.TIMEFRAME_MAP.get(self.timeframe)
+        timeframe = timeframe.upper()
+
+        expected_gap = self.TIMEFRAME_MAP.get(
+            timeframe
+        )
 
         if expected_gap is None:
             return (
                 False,
-                f"Unsupported timeframe '{self.timeframe}'."
+                f"Unsupported timeframe '{timeframe}'."
             )
 
         if len(candles) < 2:

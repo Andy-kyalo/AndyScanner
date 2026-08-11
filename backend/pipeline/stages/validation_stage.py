@@ -5,10 +5,11 @@ Validation Pipeline Stage.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
+Version: 0.5.0
 """
 
 from backend.pipeline.pipeline_stage import PipelineStage
-from backend.market_validator import MarketValidator
+from backend.validation.market_validator import MarketValidator
 
 
 class ValidationStage(PipelineStage):
@@ -21,13 +22,16 @@ class ValidationStage(PipelineStage):
 
     def execute(self, context):
 
-        validator = MarketValidator(
-            context.candles
+        validator = MarketValidator()
+
+        valid, message = validator.validate(
+            context.candles,
+            context.timeframe,
         )
 
-        if not validator.validate():
+        if not valid:
             raise ValueError(
-                "Market data validation failed."
+                message
             )
 
         context.validator = validator
@@ -35,6 +39,11 @@ class ValidationStage(PipelineStage):
         context.set_metadata(
             "validation",
             "PASSED",
+        )
+
+        context.set_metadata(
+            "validation_message",
+            "Market data validation passed.",
         )
 
         return context

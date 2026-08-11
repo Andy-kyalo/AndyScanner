@@ -46,32 +46,58 @@ class MarketValidator:
 
             InvalidPricesValidator(),
 
-            TimeframeValidator(),
-
         ]
 
-    def validate(self, candles, timeframe):
+    # ==================================================
+    # Validation
+    # ==================================================
+
+    def validate(
+        self,
+        candles,
+        timeframe,
+    ):
         """
         Execute all validators.
 
         Returns
         -------
-        (bool, str)
+        tuple(bool, str)
         """
+
+        # --------------------------------------------------
+        # Standard market-data validators
+        # --------------------------------------------------
 
         for validator in self.validators:
 
-            if isinstance(validator, TimeframeValidator):
-                valid, message = validator.validate(
-                    candles,
-                    timeframe,
-                )
-            else:
-                valid, message = validator.validate(
-                    candles,
-                )
- 
-            if not valid:
-                return False, message
+            valid, message = validator.validate(
+                candles,
+            )
 
-        return True, "Market validation passed."
+            if not valid:
+                return (
+                    False,
+                    message,
+                )
+
+        # --------------------------------------------------
+        # Timeframe validation
+        # --------------------------------------------------
+
+        timeframe_validator = TimeframeValidator()
+
+        valid, message = timeframe_validator.validate(
+            candles,
+            timeframe,
+        )
+
+        if not valid:
+            return (
+                False,
+                message,
+            )
+        return (
+            True,
+            "Market data validation passed.",
+        )

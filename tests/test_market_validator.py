@@ -1,8 +1,17 @@
+import unittest
+
 from backend.validation.market_validator import MarketValidator
 
 
 class Candle:
-    def __init__(self, time, open_, high, low, close):
+    def __init__(
+        self,
+        time,
+        open_,
+        high,
+        low,
+        close,
+    ):
         self.time = time
         self.open = open_
         self.high = high
@@ -10,68 +19,180 @@ class Candle:
         self.close = close
 
 
-validator = MarketValidator()
+class TestMarketValidator(unittest.TestCase):
 
-# -------------------------------
-# VALID DATA
-# -------------------------------
+    def setUp(self):
 
-valid = [
+        self.validator = MarketValidator()
 
-    Candle("10:00", 100, 110, 95, 105),
+    # ==================================================
+    # VALID DATA
+    # ==================================================
 
-    Candle("10:05", 105, 115, 100, 112),
+    def test_valid_market_data(self):
 
-    Candle("10:10", 112, 118, 110, 117),
+        candles = [
 
-]
+            Candle(
+                "10:00",
+                100,
+                110,
+                95,
+                105,
+            ),
 
-print(validator.validate(valid))
+            Candle(
+                "10:05",
+                105,
+                115,
+                100,
+                112,
+            ),
 
-# -------------------------------
-# DUPLICATE TIME
-# -------------------------------
+            Candle(
+                "10:10",
+                112,
+                118,
+                110,
+                117,
+            ),
 
-duplicate = [
+        ]
 
-    Candle("10:00", 100, 110, 95, 105),
+        valid, message = self.validator.validate(
+            candles,
+            "M5",
+        )
 
-    Candle("10:00", 105, 115, 100, 112),
+        self.assertTrue(valid)
+        self.assertEqual(
+            message,
+            "Market data validation passed.",
+        )
 
-    Candle("10:10", 112, 118, 110, 117),
+    # ==================================================
+    # DUPLICATE TIME
+    # ==================================================
 
-]
+    def test_duplicate_candles(self):
 
-print(validator.validate(duplicate))
+        candles = [
 
-# -------------------------------
-# INVALID PRICES
-# -------------------------------
+            Candle(
+                "10:00",
+                100,
+                110,
+                95,
+                105,
+            ),
 
-bad_price = [
+            Candle(
+                "10:00",
+                105,
+                115,
+                100,
+                112,
+            ),
 
-    Candle("10:00", 100, 90, 95, 105),
+            Candle(
+                "10:10",
+                112,
+                118,
+                110,
+                117,
+            ),
 
-    Candle("10:05", 105, 115, 100, 112),
+        ]
 
-    Candle("10:10", 112, 118, 110, 117),
+        valid, message = self.validator.validate(
+            candles,
+            "M5",
+        )
 
-]
+        self.assertFalse(valid)
 
-print(validator.validate(bad_price))
+    # ==================================================
+    # INVALID PRICES
+    # ==================================================
 
-# -------------------------------
-# BAD TIMEFRAME
-# -------------------------------
+    def test_invalid_prices(self):
 
-bad_timeframe = [
+        candles = [
 
-    Candle("10:00", 100, 110, 95, 105),
+            Candle(
+                "10:00",
+                100,
+                90,
+                95,
+                105,
+            ),
 
-    Candle("10:03", 105, 115, 100, 112),
+            Candle(
+                "10:05",
+                105,
+                115,
+                100,
+                112,
+            ),
 
-    Candle("10:10", 112, 118, 110, 117),
+            Candle(
+                "10:10",
+                112,
+                118,
+                110,
+                117,
+            ),
 
-]
+        ]
 
-print(validator.validate(bad_timeframe))
+        valid, message = self.validator.validate(
+            candles,
+            "M5",
+        )
+
+        self.assertFalse(valid)
+
+    # ==================================================
+    # BAD TIMEFRAME
+    # ==================================================
+
+    def test_invalid_timeframe(self):
+
+        candles = [
+
+            Candle(
+                "10:00",
+                100,
+                110,
+                95,
+                105,
+            ),
+
+            Candle(
+                "10:03",
+                105,
+                115,
+                100,
+                112,
+            ),
+
+            Candle(
+                "10:10",
+                112,
+                118,
+                110,
+                117,
+            ),
+
+        ]
+
+        valid, message = self.validator.validate(
+            candles,
+            "M5",
+        )
+
+        self.assertFalse(valid)
+
+
+if __name__ == "__main__":
+    unittest.main()

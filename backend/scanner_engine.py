@@ -12,7 +12,7 @@ from datetime import datetime
 
 from backend.analyzer import Analyzer
 from backend.logger import Logger
-from backend.market_validator import MarketValidator
+from backend.validation.market_validator import MarketValidator
 from backend.register_providers import register_providers
 from backend.scanner_config import ScannerConfig
 from backend.signal_engine import SignalEngine
@@ -45,10 +45,10 @@ class ScannerEngine:
         self.config = scanner_config
         self.logger = Logger()
         self.manager = ScannerManager(self)
-        
+
     # ==================================================
-# Execute Pipeline
-# ==================================================
+    # Execute Pipeline
+    # ==================================================
 
     def execute_pipeline(self) -> PipelineResult:
         """
@@ -107,7 +107,6 @@ class ScannerEngine:
                 "Scanner",
                 "Starting market scan."
             )
-
             # ==================================================
             # Provider
             # ==================================================
@@ -150,19 +149,22 @@ class ScannerEngine:
             # Validate Market Data
             # ==================================================
 
-            validator = MarketValidator(candles)
+            validator = MarketValidator()
 
-            if not validator.validate():
+            valid, message = validator.validate(
+                candles,
+                timeframe,
+            )
 
+            if not valid:
                 raise ValueError(
-                    "Market data validation failed."
+                    message
                 )
 
             self.logger.info(
                 "Validator",
                 "Market data validation passed."
             )
-
             # ==================================================
             # Analyze Market
             # ==================================================
@@ -289,5 +291,4 @@ class ScannerEngine:
             self.logger.session_log("=" * 60)
             self.logger.session_log("SESSION TERMINATED")
             self.logger.session_log("=" * 60)
-
             raise
