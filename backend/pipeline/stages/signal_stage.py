@@ -23,7 +23,7 @@ class SignalStage(PipelineStage):
     def execute(self, context):
 
         signal = SignalEngine(
-            context.analyzer
+            context.analysis
         ).generate()
 
         signal.market = context.market

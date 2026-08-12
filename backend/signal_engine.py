@@ -13,14 +13,16 @@ from backend.confidence_engine import ConfidenceEngine
 
 class SignalEngine:
     """
-    Generates trading signals from
-    Analyzer and ConfidenceEngine.
+    Generates trading signals from a completed AnalysisResult.
     """
 
-    def __init__(self, analyzer):
+    def __init__(self, analysis):
 
-        self.analyzer = analyzer
-        self.confidence = ConfidenceEngine(analyzer)
+        self.analysis = analysis
+
+        self.confidence = ConfidenceEngine(
+            analysis
+        )
 
     # ==========================================
     # Generate Signal
@@ -30,7 +32,7 @@ class SignalEngine:
 
         score = self.confidence.calculate()
 
-        trend = self.analyzer.trend()
+        trend = self.analysis.trend
 
         direction = "WAIT"
 

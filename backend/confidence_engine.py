@@ -10,12 +10,12 @@ Project: Andy Scanner
 
 class ConfidenceEngine:
     """
-    Calculates confidence score for the current market bias.
+    Calculates confidence from a completed AnalysisResult.
     """
 
-    def __init__(self, analyzer):
+    def __init__(self, analysis):
 
-        self.analyzer = analyzer
+        self.analysis = analysis
 
     # ==========================================
     # Calculate Confidence
@@ -25,7 +25,7 @@ class ConfidenceEngine:
 
         confidence = 0
 
-        trend = self.analyzer.trend()
+        trend = self.analysis.trend
 
         # ==========================================
         # Bullish Market
@@ -33,31 +33,24 @@ class ConfidenceEngine:
 
         if trend == "UPTREND":
 
-            # Break of Structure
-            if self.analyzer.bullish_bos():
+            if self.analysis.bullish_bos:
                 confidence += 25
 
-            # Change of Character
-            if self.analyzer.bullish_choch():
+            if self.analysis.bullish_choch:
                 confidence += 20
 
-            # Order Block
-            if self.analyzer.has_bullish_order_block():
+            if self.analysis.bullish_order_block is not None:
                 confidence += 15
 
-            # Fair Value Gap
-            if self.analyzer.bullish_fvg():
+            if self.analysis.bullish_fvg_count > 0:
                 confidence += 15
 
-            # Liquidity
-            if self.analyzer.buy_side_count() > 0:
+            if self.analysis.buy_side_count > 0:
                 confidence += 10
 
-            # Engulfing Pattern
-            if self.analyzer.bullish_engulfing():
+            if len(self.analysis.bullish_engulfing) > 0:
                 confidence += 10
 
-            # Trend Alignment Bonus
             confidence += 5
 
         # ==========================================
@@ -66,31 +59,24 @@ class ConfidenceEngine:
 
         elif trend == "DOWNTREND":
 
-            # Break of Structure
-            if self.analyzer.bearish_bos():
+            if self.analysis.bearish_bos:
                 confidence += 25
 
-            # Change of Character
-            if self.analyzer.bearish_choch():
+            if self.analysis.bearish_choch:
                 confidence += 20
 
-            # Order Block
-            if self.analyzer.has_bearish_order_block():
+            if self.analysis.bearish_order_block is not None:
                 confidence += 15
 
-            # Fair Value Gap
-            if self.analyzer.bearish_fvg():
+            if self.analysis.bearish_fvg_count > 0:
                 confidence += 15
 
-            # Liquidity
-            if self.analyzer.sell_side_count() > 0:
+            if self.analysis.sell_side_count > 0:
                 confidence += 10
 
-            # Engulfing Pattern
-            if self.analyzer.bearish_engulfing():
+            if len(self.analysis.bearish_engulfing) > 0:
                 confidence += 10
 
-            # Trend Alignment Bonus
             confidence += 5
 
         return min(confidence, 100)

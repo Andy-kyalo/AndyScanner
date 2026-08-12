@@ -1,0 +1,38 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+set -u
+
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+cd "$PROJECT_ROOT" || exit 1
+
+echo "========================================"
+echo "      ANDYSCANNER ENGINEERING CHECK"
+echo "========================================"
+echo
+
+echo "[1/3] Python compilation"
+if python -m compileall -q backend tests; then
+    echo "      ✓ Compilation passed"
+else
+    echo "      ✗ Compilation failed"
+    exit 1
+fi
+
+echo
+echo "[2/3] Test suite"
+if python -m unittest discover -s tests -v; then
+    echo "      ✓ All tests passed"
+else
+    echo "      ✗ Tests failed"
+    exit 1
+fi
+
+echo
+echo "[3/3] Git status"
+git status --short
+
+echo
+echo "========================================"
+echo "      ENGINEERING CHECK PASSED"
+echo "========================================"
