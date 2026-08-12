@@ -20,6 +20,7 @@ class ScannerResult:
         candles,
         analyzer,
         signal,
+        trade_setup=None,
     ):
 
         self.market = market
@@ -28,6 +29,7 @@ class ScannerResult:
         self.candles = candles
         self.analyzer = analyzer
         self.signal = signal
+        self.trade_setup = trade_setup
 
     # ==================================================
     # Summary

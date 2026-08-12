@@ -38,6 +38,7 @@ class PipelineContext:
 
         self.analyzer = None
         self.signal = None
+        self.trade_setup = None
         
         self.scan_result = None
 

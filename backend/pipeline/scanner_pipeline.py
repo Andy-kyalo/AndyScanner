@@ -146,18 +146,13 @@ class ScannerPipeline:
         )
 
         context.scan_result = ScannerResult(
-
             market=context.market,
-
             timeframe=context.timeframe,
-
             candles=context.candles,
-
             analyzer=context.analyzer,
-
             signal=context.signal,
-
-        )
+            trade_setup=context.trade_setup,
+       )
 
         result.add_metadata(
 

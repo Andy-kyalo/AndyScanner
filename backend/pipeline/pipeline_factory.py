@@ -16,7 +16,7 @@ from backend.pipeline.stages.analysis_stage import AnalysisStage
 from backend.pipeline.stages.signal_stage import SignalStage
 from backend.pipeline.stages.database_stage import DatabaseStage
 from backend.pipeline.stages.report_stage import ReportStage
-
+from backend.pipeline.stages.trade_setup_stage import TradeSetupStage
 
 class PipelineFactory:
     """
