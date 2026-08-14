@@ -26,9 +26,6 @@ class SignalStage(PipelineStage):
             context.analysis
         ).generate()
 
-        signal.market = context.market
-        signal.timeframe = context.timeframe
-
         context.signal = signal
 
         context.set_metadata(

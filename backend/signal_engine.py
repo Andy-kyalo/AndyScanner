@@ -53,8 +53,8 @@ class SignalEngine:
                 direction = "SELL"
 
         return Signal(
-            market="US30",
-            timeframe="M5",
+            market=self.analysis.market,
+            timeframe=self.analysis.timeframe,
             direction=direction,
             confidence=score,
         )

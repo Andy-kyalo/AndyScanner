@@ -14,9 +14,18 @@ class MockConfidence:
 
 class TestSignalEngine(unittest.TestCase):
 
-    def create_engine(self, trend, confidence):
+    def create_engine(
+        self,
+        trend,
+        confidence,
+        market="US30",
+        timeframe="M5",
+    ):
 
         analysis = AnalysisResult()
+
+        analysis.market = market
+        analysis.timeframe = timeframe
         analysis.trend = trend
 
         engine = SignalEngine(analysis)
@@ -25,7 +34,7 @@ class TestSignalEngine(unittest.TestCase):
         # ConfidenceEngine scoring logic.
         engine.confidence = MockConfidence(
             confidence
-        )
+            )
 
         return engine
 
@@ -221,20 +230,7 @@ class TestSignalEngine(unittest.TestCase):
             80,
         )
 
-    def test_signal_contains_default_market(self):
-
-        engine = self.create_engine(
-            "UPTREND",
-            80,
-        )
-
-        signal = engine.generate()
-
-        self.assertEqual(
-            signal.market,
-            "US30",
-        )
-
+     
     def test_signal_contains_default_timeframe(self):
 
         engine = self.create_engine(
@@ -247,6 +243,26 @@ class TestSignalEngine(unittest.TestCase):
         self.assertEqual(
             signal.timeframe,
             "M5",
+        )
+    def test_signal_preserves_analysis_market_and_timeframe(self):
+
+        engine = self.create_engine(
+            "UPTREND",
+            80,
+            market="NAS100",
+            timeframe="M15",
+        )
+
+        signal = engine.generate()
+
+        self.assertEqual(
+            signal.market,
+            "NAS100",
+        )
+
+        self.assertEqual(
+            signal.timeframe,
+            "M15",
         )
 
 
