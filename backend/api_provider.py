@@ -45,14 +45,25 @@ class APIProvider(BaseProvider):
     # Request
     # ==================================================
 
-    def request(self, url, api_key=None, limit=100):
+    def request(
+        self,
+        url,
+        symbol=None,
+        api_key=None,
+        limit=100,
+    ):
         """
         Execute an API request and return
         the raw JSON response.
         """
 
+        request_symbol = (
+            symbol
+            or self.config.market
+        )
+
         cache_key = (
-            self.config.market,
+            request_symbol,
             self.config.timeframe,
             limit,
         )
@@ -65,9 +76,10 @@ class APIProvider(BaseProvider):
         headers = APIRequestBuilder.headers(api_key)
 
         params = APIRequestBuilder.build(
-            self.config.market,
+            request_symbol,
             self.config.timeframe,
             limit,
+            api_key=api_key
         )
 
         self.session.set_headers(headers)
@@ -111,13 +123,54 @@ class APIProvider(BaseProvider):
         return self.mapper.map(raw_data)
 
     # ==================================================
+    # Provider Probe
+    # ==================================================
+
+    def probe(self):
+        """
+        Perform a lightweight API provider readiness check.
+
+        This does not request market data.
+        """
+
+        self.probe_error = None
+
+        api_url = getattr(
+            self.config,
+            "api_url",
+            None,
+        )
+
+        if not api_url:
+            self.probe_error = (
+                "API URL is not configured."
+            )
+            return False
+
+        if not callable(
+            getattr(self, "request", None)
+        ):
+            self.probe_error = (
+                "API request method is unavailable."
+            )
+            return False
+
+        return True
+
+    # ==================================================
     # Load
     # ==================================================
 
-    def load(self):
+    def load(self, symbol=None):
         """
         Load market data from the configured API
         and convert it into Candle objects.
+
+        Args:
+            symbol:
+                Provider-specific market symbol.
+                If omitted, the canonical market symbol
+                from the configuration is used.
 
         Returns:
             list[Candle]
@@ -142,13 +195,19 @@ class APIProvider(BaseProvider):
 
         raw_response = self.request(
             url=api_url,
+            symbol=symbol,
             api_key=api_key,
             limit=500,
         )
 
         if isinstance(raw_response, dict):
-            raw_data = raw_response.get("data")
+
+            raw_data = raw_response.get(
+                "values"
+            )
+
         else:
+
             raw_data = raw_response
 
         if raw_data is None:

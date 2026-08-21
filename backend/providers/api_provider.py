@@ -27,10 +27,18 @@ class APIProvider(BaseAPIProvider):
     # Load
     # ==================================================
 
-    def load(self):
+    def load(self, symbol=None):
         """
         Load market data through the configured API
         and convert it into Candle objects.
+
+        Args:
+            symbol:
+                Provider-specific market symbol.
+                If omitted, the configured canonical symbol
+                is used by the base provider.
         """
 
-        return super().load()
+        return super().load(
+            symbol=symbol
+        )
