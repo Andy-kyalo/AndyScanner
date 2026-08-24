@@ -50,22 +50,3 @@ except ProviderConnectionError as error:
         "Error:",
         error,
     )
-print(
-    "Attempts:",
-    context.get_metadata("provider_attempts"),
-)
-
-print(
-    "Failures:",
-    context.get_metadata("provider_failures"),
-)
-
-print(
-    "Selected:",
-    context.get_metadata("selected_provider"),
-)
-
-print(
-    "Failover used:",
-    context.get_metadata("failover_used"),
-)

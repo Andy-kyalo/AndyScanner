@@ -13,6 +13,8 @@ class FakeProvider:
 
         self.should_fail = should_fail
         self.calls = 0
+    def probe(self):
+        return not self.should_fail
 
     def load(self):
 

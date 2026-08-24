@@ -44,13 +44,13 @@ class Config:
     # Default Scanner Settings
     # ======================================================
 
-    DEFAULT_MARKET = os.getenv("DEFAULT_MARKET", "US30")
+    DEFAULT_MARKET = os.getenv("DEFAULT_MARKET", "EURUSD")
     DEFAULT_TIMEFRAME = os.getenv("DEFAULT_TIMEFRAME", "M5")
     
     DATA_SOURCE = os.getenv(
         "DATA_SOURCE",
-        "csv",
-    )
+        "TWELVEDATA",
+    ).upper()
 
     SCAN_INTERVAL = int(
         os.getenv("SCAN_INTERVAL", "60")
@@ -94,6 +94,11 @@ class Config:
     # ======================================================
     # API Configuration
     # ======================================================
+
+    API_URL = os.getenv(
+        "API_URL",
+        ""
+    )
 
     API_KEY = os.getenv(
         "API_KEY",

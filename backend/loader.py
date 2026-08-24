@@ -104,3 +104,4 @@ class Loader:
             )
 
         return candles
+        return candles

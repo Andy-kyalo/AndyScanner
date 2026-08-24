@@ -9,6 +9,7 @@ Project: Andy Scanner
 
 from backend.provider_manager import ProviderManager
 
+
 _provider_manager = ProviderManager()
 
 

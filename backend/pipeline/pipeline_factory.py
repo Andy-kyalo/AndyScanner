@@ -54,6 +54,10 @@ class PipelineFactory:
         )
 
         pipeline.add_stage(
+            TradeSetupStage()
+        )
+
+        pipeline.add_stage(
             DatabaseStage()
         )
 

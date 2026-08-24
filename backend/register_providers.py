@@ -13,17 +13,16 @@ from backend.provider_service import get_provider_manager
 from backend.providers.csv_provider import CSVProvider
 from backend.providers.api_provider import APIProvider
 from backend.providers.mt5_provider import MT5Provider
+from backend.providers.twelvedata_provider import TwelveDataProvider
 
 
 def register_providers():
     """
-    Register all available providers using the
-    shared ProviderManager instance.
+    Register all available market data providers.
     """
 
     manager = get_provider_manager()
 
-    # Prevent duplicate registration
     if not manager.provider_exists("CSV"):
         manager.register("CSV", CSVProvider)
 
@@ -32,5 +31,11 @@ def register_providers():
 
     if not manager.provider_exists("MT5"):
         manager.register("MT5", MT5Provider)
+
+    if not manager.provider_exists("TWELVEDATA"):
+        manager.register(
+            "TWELVEDATA",
+            TwelveDataProvider,
+        )
 
     return manager

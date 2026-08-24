@@ -40,8 +40,9 @@ class ScannerConfig:
         if provider_priority is None:
 
             self.provider_priority = [
-                "CSV",
+                "TWELVEDATA",
                 "API",
+                "CSV",
                 "MT5",
             ]
 

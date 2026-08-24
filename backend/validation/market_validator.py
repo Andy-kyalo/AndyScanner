@@ -28,6 +28,10 @@ from backend.validation.validators.timeframe_validator import (
     TimeframeValidator,
 )
 
+from backend.validation.validators.freshness_validator import (
+    FreshnessValidator,
+)
+
 
 class MarketValidator:
     """
@@ -48,6 +52,10 @@ class MarketValidator:
 
         ]
 
+        self.timeframe_validator = TimeframeValidator()
+
+        self.freshness_validator = FreshnessValidator()
+
     # ==================================================
     # Validation
     # ==================================================
@@ -58,11 +66,21 @@ class MarketValidator:
         timeframe,
     ):
         """
-        Execute all validators.
+        Execute the complete market validation pipeline.
+
+        Validation order:
+
+            1. Empty response
+            2. Minimum candle availability
+            3. Duplicate candles
+            4. Invalid prices
+            5. Timeframe consistency
+            6. Data freshness
 
         Returns
         -------
         tuple(bool, str)
+            Validation result and explanatory message.
         """
 
         # --------------------------------------------------
@@ -76,6 +94,7 @@ class MarketValidator:
             )
 
             if not valid:
+
                 return (
                     False,
                     message,
@@ -85,18 +104,38 @@ class MarketValidator:
         # Timeframe validation
         # --------------------------------------------------
 
-        timeframe_validator = TimeframeValidator()
-
-        valid, message = timeframe_validator.validate(
+        valid, message = self.timeframe_validator.validate(
             candles,
             timeframe,
         )
 
         if not valid:
+
             return (
                 False,
                 message,
             )
+
+        # --------------------------------------------------
+        # Freshness validation
+        # --------------------------------------------------
+
+        valid, message = self.freshness_validator.validate(
+            candles,
+            timeframe,
+        )
+
+        if not valid:
+
+            return (
+                False,
+                message,
+            )
+
+        # --------------------------------------------------
+        # Validation successful
+        # --------------------------------------------------
+
         return (
             True,
             "Market data validation passed.",

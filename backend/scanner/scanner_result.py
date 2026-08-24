@@ -21,7 +21,12 @@ class ScannerResult:
         analyzer,
         signal,
         trade_setup=None,
+        provider=None,
+        provider_symbol=None,
     ):
+        """
+        Initialize the final scanner result.
+        """
 
         self.market = market
         self.timeframe = timeframe
@@ -31,26 +36,28 @@ class ScannerResult:
         self.signal = signal
         self.trade_setup = trade_setup
 
+        # Provider information
+        self.provider = provider
+        self.provider_symbol = provider_symbol
+
     # ==================================================
     # Summary
     # ==================================================
 
     def summary(self):
+        """
+        Return a compact scanner-result summary.
+        """
 
         return {
-
             "market": self.market,
-
             "timeframe": self.timeframe,
-
             "candles": len(self.candles),
-
+            "provider": self.provider,
+            "provider_symbol": self.provider_symbol,
             "trend": self.analyzer.trend(),
-
             "signal": self.signal.direction,
-
             "confidence": self.signal.confidence,
-
         }
 
     # ==================================================
@@ -58,17 +65,15 @@ class ScannerResult:
     # ==================================================
 
     def __repr__(self):
+        """
+        Return a readable representation.
+        """
 
         return (
-
             f"ScannerResult("
-
             f"{self.market}, "
-
             f"{self.timeframe}, "
-
             f"{self.signal.direction}, "
-
-            f"{self.signal.confidence}%)"
-
+            f"{self.signal.confidence}%, "
+            f"provider={self.provider})"
         )

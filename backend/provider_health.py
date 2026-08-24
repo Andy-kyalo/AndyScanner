@@ -40,22 +40,45 @@ class ProviderHealth:
 
         try:
 
-            # Basic provider readiness validation.
             if self.provider is None:
                 raise ValueError(
                     "Provider instance is None."
                 )
 
-            if not hasattr(
-                self.provider,
-                "load",
+            if not callable(
+                getattr(self.provider, "load", None)
             ):
                 raise ValueError(
                     "Provider does not implement load()."
                 )
 
-            # Actually test the provider.
-            self.provider.load()
+            if not callable(
+                getattr(self.provider, "probe", None)
+            ):
+                raise ValueError(
+                    "Provider does not implement probe()."
+                )
+            # Perform provider readiness probe.
+            probe_result = self.provider.probe()
+
+            if probe_result is not True:
+                probe_error = getattr(
+                    self.provider,
+                    "probe_error",
+                    None,
+                )
+
+                if probe_error:
+                    raise RuntimeError(
+                        f"Provider '{self.provider.name}' "
+                        f"failed readiness probe: "
+                        f"{probe_error}"
+                    )
+
+                raise RuntimeError(
+                    f"Provider '{self.provider.name}' "
+                    "failed readiness probe."
+                )
 
             self.status = "HEALTHY"
 

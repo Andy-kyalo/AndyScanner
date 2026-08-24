@@ -70,6 +70,11 @@ class ProviderStage(PipelineStage):
 
         for provider_name in configured_priority:
 
+
+            # --------------------------------------------------
+            # Provider Registration
+            # --------------------------------------------------
+
             provider_name = provider_name.upper()
 
             if provider_name not in provider_priority:
@@ -176,6 +181,10 @@ class ProviderStage(PipelineStage):
 
             if not resolution.supported:
 
+                # Provider was considered in the failover sequence,
+                # but the requested canonical market is unsupported.
+                attempts.append(provider_name)
+
                 failures.append(
                     {
                         "provider": provider_name,
@@ -198,11 +207,8 @@ class ProviderStage(PipelineStage):
                     "cooldown_remaining": 0.0,
                 }
 
-                # Unsupported market is NOT a provider failure.
-                # Therefore we do NOT call:
-                #
-                # self.recovery.record_failure(...)
-                #
+                # Unsupported market is not a provider health failure.
+                # Do not put it into ProviderRecovery cooldown.
                 continue
 
             # --------------------------------------------------
@@ -278,7 +284,7 @@ class ProviderStage(PipelineStage):
 
                 self.recovery.record_failure(
                     provider_name
-            )
+                )
 
                 recovery_results[
                     provider_name
@@ -302,16 +308,15 @@ class ProviderStage(PipelineStage):
                         "error": (
                             health_error
                             or "Provider failed health check."
-            ),
-        }
-    )
+                        ),
+                    }
+                )
 
                 continue
 
             # --------------------------------------------------
             # Provider Load
             # --------------------------------------------------
-
             try:
 
                 provider = (
@@ -332,9 +337,9 @@ class ProviderStage(PipelineStage):
 
                 candles = retry.execute(
                     lambda: timeout.execute(
-                    lambda: provider.load(
-                        symbol=resolution.symbol
-                    )
+                        lambda: provider.load(
+                            symbol=resolution.symbol
+                        )
                     )
                 )
 
@@ -347,7 +352,6 @@ class ProviderStage(PipelineStage):
                 # --------------------------------------------------
                 # Success
                 # --------------------------------------------------
-
                 selected_provider = provider
 
                 provider_manager.record_success()
@@ -375,28 +379,50 @@ class ProviderStage(PipelineStage):
                     provider_name
                 )
 
-                health = health_manager.get_health(
-                    provider_name,
-                    config,
-                )
+                # --------------------------------------------------
+                # Classify actual provider load failure
+                # --------------------------------------------------
+                error_type = type(error).__name__
+                error_message = str(error)
 
-                health_error = (
-                    getattr(
-                        health,
-                        "last_error",
-                        None,
-                    )
-                    if health is not None
-                    else None
-                )
+                failure_category = "PROVIDER_ERROR"
 
+                if error_type == "ProviderMarketUnsupportedError":
+                    failure_category = "MARKET_UNSUPPORTED"
+
+                elif error_type == "ProviderPlanRestrictedError":
+                    failure_category = "PLAN_RESTRICTED"
+
+                elif error_type == "ProviderRateLimitError":
+                    failure_category = "RATE_LIMITED"
+
+                elif error_type == "ProviderAuthenticationError":
+                    failure_category = "AUTHENTICATION_ERROR"
+
+                elif error_type == "ProviderTimeoutError":
+                    failure_category = "TIMEOUT"
+
+                elif error_type == "ProviderConnectionError":
+                    failure_category = "CONNECTION_ERROR"
+
+                elif error_type == "ProviderUnavailableError":
+                    failure_category = "PROVIDER_UNAVAILABLE"
+
+                elif error_type == "ProviderDataError":
+                    failure_category = "DATA_ERROR"
+
+                elif error_type == "ProviderConfigurationError":
+                    failure_category = "CONFIGURATION_ERROR"
+
+                # --------------------------------------------------
+                # Record actual failure
+                # --------------------------------------------------
                 failures.append(
                     {
                         "provider": provider_name,
-                        "error": (
-                            health_error
-                            or "Provider failed health check."
-                        ),
+                        "error_type": error_type,
+                        "category": failure_category,
+                        "error": error_message,
                     }
                 )
 
@@ -409,6 +435,12 @@ class ProviderStage(PipelineStage):
                             provider_name
                         ),
                 }
+
+                # --------------------------------------------------
+                # IMPORTANT:
+                # Continue failover to the next provider.
+                # --------------------------------------------------
+                continue
 
         # ==================================================
         # All Providers Failed
@@ -535,12 +567,14 @@ class ProviderStage(PipelineStage):
             True,
         )
 
+        selected_name = selected_provider.name.replace(
+            "Provider",
+            "",
+        ).upper()
+
         context.set_metadata(
             "failover_used",
-            attempts[0] != selected_provider.name.replace(
-                "Provider",
-                "",
-            )
+            attempts[0].upper() != selected_name
             if attempts
             else False,
         )
@@ -549,3 +583,4 @@ class ProviderStage(PipelineStage):
             "candles",
             candles,
         )
+        return context

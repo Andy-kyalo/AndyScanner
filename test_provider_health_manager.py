@@ -14,6 +14,12 @@ class HealthyProvider:
         self.config = config
         self.calls = 0
 
+    def probe(self):
+        """
+        Healthy provider passes the readiness check.
+        """
+        return True
+
     def load(self):
 
         self.calls += 1
@@ -36,6 +42,12 @@ class FailingProvider:
     def __init__(self, config):
         self.config = config
         self.calls = 0
+
+    def probe(self):
+        """
+        Failing provider fails the readiness check.
+        """
+        return False
 
     def load(self):
 

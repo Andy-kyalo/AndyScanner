@@ -35,7 +35,7 @@ from backend.metrics.performance_metrics import PerformanceMetrics
 
 def main():
     """
-    Andy Scanner Entry Point.
+    Main Andy Scanner application entry point.
     """
 
     # ==================================================
@@ -49,7 +49,7 @@ def main():
     print_environment()
 
     # ==================================================
-    # HEALTH CHECK
+    # SYSTEM HEALTH
     # ==================================================
 
     health = HealthChecker.run()
@@ -74,6 +74,7 @@ def main():
     print("===================================\n")
 
     if not health["healthy"]:
+        print("System health check failed.")
         return
 
     # ==================================================
@@ -85,17 +86,20 @@ def main():
     print_project_validation(project)
 
     if not project["valid"]:
+        print("Project validation failed.")
         return
 
     # ==================================================
     # DATABASE INITIALIZATION
     # ==================================================
 
-    with DatabaseManager(Config.DATABASE_PATH):
+    with DatabaseManager(
+        Config.DATABASE_PATH
+    ):
         pass
 
     # ==================================================
-    # REGISTER PROVIDERS
+    # PROVIDER REGISTRATION
     # ==================================================
 
     provider_manager = register_providers()
@@ -107,15 +111,25 @@ def main():
     scanner_config = ScannerConfig(
         market=Config.DEFAULT_MARKET,
         timeframe=Config.DEFAULT_TIMEFRAME,
+        data_source=Config.DATA_SOURCE,
+        api_url=Config.API_URL,
+        api_key=Config.API_KEY,
     )
 
     # ==================================================
-    # CREATE ENGINE
+    # SCANNER ENGINE
     # ==================================================
 
-    engine = ScannerEngine(scanner_config)
+    engine = ScannerEngine(
+        scanner_config
+    )
+
+    # ==================================================
+    # SUPPORT SERVICES
+    # ==================================================
 
     scheduler = SchedulerManager()
+
     performance = PerformanceMetrics()
 
     session = ScannerSession(
@@ -124,48 +138,179 @@ def main():
     )
 
     # ==================================================
-    # EXECUTE PIPELINE
+    # EXECUTE SCANNER PIPELINE
     # ==================================================
 
     pipeline_result = engine.execute_pipeline()
 
-    print("\n========== PIPELINE TEST ==========")
+    print("\n========== PIPELINE RESULT ==========")
 
-    print(f"Success : {pipeline_result.success}")
+    print(
+        f"Success : {pipeline_result.success}"
+    )
 
-    print(f"Message : {pipeline_result.message}")
+    print(
+        f"Message : {pipeline_result.message}"
+    )
 
-    print("===================================")
+    print("=====================================")
+
+    # ==================================================
+    # PIPELINE FAILURE
+    # ==================================================
 
     if not pipeline_result.success:
+
+        print()
+
+        if pipeline_result.error is not None:
+
+            print(
+                "ERROR TYPE:",
+                type(
+                    pipeline_result.error
+                ).__name__,
+            )
+
+            print(
+                "ERROR:",
+                pipeline_result.error,
+            )
+
         return
 
     # ==================================================
-    # PIPELINE CONTEXT
+    # SCAN RESULT
     # ==================================================
 
-    scan_result = pipeline_result.metadata["scan_result"]
+    scan_result = pipeline_result.metadata.get(
+        "scan_result"
+    )
+
+    if scan_result is None:
+
+        print(
+            "ERROR: Pipeline completed successfully "
+            "but returned no scan result."
+        )
+
+        return
+
+    # ==================================================
+    # MARKET DATA
+    # ==================================================
 
     candles = scan_result.candles
+
     analyzer = scan_result.analyzer
 
+    signal = scan_result.signal
+
+    provider = scan_result.provider
+
+    provider_symbol = (
+        scan_result.provider_symbol
+    )
+
     # ==================================================
-    # UPDATE SCANNER SESSION
+    # SCANNER SESSION
     # ==================================================
 
     session.update_scan(
+
         trend=analyzer.trend(),
-        signal=scan_result.signal.direction,
-        confidence=scan_result.signal.confidence,
+
+        signal=signal.direction,
+
+        confidence=signal.confidence,
+
         candles_processed=len(candles),
-        provider="CSVProvider",
+
+        provider=provider,
+
         execution_time=0.0,
-      )
-      
-    performance.register_scan(
-        execution_time=0.0,
-        candles_processed=len(candles),
+
     )
+
+    # ==================================================
+    # PERFORMANCE
+    # ==================================================
+
+    performance.register_scan(
+
+        execution_time=0.0,
+
+        candles_processed=len(candles),
+
+    )
+
+    # ==================================================
+    # LIVE DATA SUMMARY
+    # ==================================================
+
+    print("\n========== LIVE MARKET DATA ==========")
+
+    print(
+        f"Market             : "
+        f"{scan_result.market}"
+    )
+
+    print(
+        f"Timeframe          : "
+        f"{scan_result.timeframe}"
+    )
+
+    print(
+        f"Provider            : "
+        f"{provider}"
+    )
+
+    print(
+        f"Provider Symbol     : "
+        f"{provider_symbol}"
+    )
+
+    print(
+        f"Candles             : "
+        f"{len(candles)}"
+    )
+
+    if candles:
+
+        print(
+            f"First Candle        : "
+            f"{candles[0].time}"
+        )
+
+        print(
+            f"Latest Candle       : "
+            f"{candles[-1].time}"
+        )
+
+    print("=======================================")
+
+    # ==================================================
+    # ANALYSIS RESULT
+    # ==================================================
+
+    print("\n========== MARKET ANALYSIS ==========")
+
+    print(
+        f"Trend              : "
+        f"{analyzer.trend()}"
+    )
+
+    print(
+        f"Signal             : "
+        f"{signal.direction}"
+    )
+
+    print(
+        f"Confidence         : "
+        f"{signal.confidence}%"
+    )
+
+    print("=====================================")
 
     # ==================================================
     # REPORTS
@@ -184,10 +329,11 @@ def main():
     # SCHEDULER SUMMARY
     # ==================================================
 
-    print()
-    print("========== Scheduler ==========")
+    print("\n========== SCHEDULER ==========")
 
-    scheduler_summary = scheduler.summary()
+    scheduler_summary = (
+        scheduler.summary()
+    )
 
     print(
         f"Status         : "
@@ -227,31 +373,83 @@ def main():
 
     session_summary = session.summary()
 
-    print("\n========== Scanner Session ==========")
+    print(
+        "\n========== SCANNER SESSION =========="
+    )
 
-    print(f"Session ID         : {session_summary['session_id']}")
-    print(f"Market             : {session_summary['market']}")
-    print(f"Timeframe          : {session_summary['timeframe']}")
-    print(f"Started At         : {session_summary['started_at']}")
-    print(f"Last Scan          : {session_summary['last_scan']}")
-    print(f"Candles Processed  : {session_summary['candles_processed']}")
-    print(f"Trend              : {session_summary['trend']}")
-    print(f"Signal             : {session_summary['signal']}")
-    print(f"Confidence         : {session_summary['confidence']}%")
-    print(f"Provider           : {session_summary['provider']}")
-    print(f"Execution Time     : {session_summary['execution_time']}")
-    print(f"Analysis Status    : {session_summary['analysis_status']}")
+    print(
+        f"Session ID         : "
+        f"{session_summary['session_id']}"
+    )
+
+    print(
+        f"Market             : "
+        f"{session_summary['market']}"
+    )
+
+    print(
+        f"Timeframe          : "
+        f"{session_summary['timeframe']}"
+    )
+
+    print(
+        f"Started At         : "
+        f"{session_summary['started_at']}"
+    )
+
+    print(
+        f"Last Scan          : "
+        f"{session_summary['last_scan']}"
+    )
+
+    print(
+        f"Candles Processed  : "
+        f"{session_summary['candles_processed']}"
+    )
+
+    print(
+        f"Trend              : "
+        f"{session_summary['trend']}"
+    )
+
+    print(
+        f"Signal             : "
+        f"{session_summary['signal']}"
+    )
+
+    print(
+        f"Confidence         : "
+        f"{session_summary['confidence']}%"
+    )
+
+    print(
+        f"Provider           : "
+        f"{session_summary['provider']}"
+    )
+
+    print(
+        f"Execution Time     : "
+        f"{session_summary['execution_time']}"
+    )
+
+    print(
+        f"Analysis Status    : "
+        f"{session_summary['analysis_status']}"
+    )
 
     print("=====================================")
-    
-    
+
     # ==================================================
     # PERFORMANCE METRICS
     # ==================================================
 
-    performance_summary = performance.summary()
+    performance_summary = (
+        performance.summary()
+    )
 
-    print("\n========== Performance Metrics ==========")
+    print(
+        "\n========== PERFORMANCE METRICS =========="
+    )
 
     print(
         f"Started At         : "
@@ -266,32 +464,36 @@ def main():
     print(
         f"Total Candles      : "
         f"{performance_summary['total_candles']}"
-        )
+    )
 
     print(
         f"Last Execution     : "
-        f"{performance_summary['last_execution_time']}" 
-      )
+        f"{performance_summary['last_execution_time']}"
+    )
 
     print(
         f"Average Execution  : "
         f"{performance_summary['average_execution_time']}"
-      )
+    )
 
     print(
         f"Scans Per Hour     : "
         f"{performance_summary['scans_per_hour']}"
     )
 
-    print("=========================================")
+    print("==========================================")
 
     # ==================================================
     # PROVIDER METRICS
     # ==================================================
 
-    metrics = provider_manager.metrics_report()
+    metrics = (
+        provider_manager.metrics_report()
+    )
 
-    print("\n========== Provider Metrics ==========")
+    print(
+        "\n========== PROVIDER METRICS =========="
+    )
 
     print(
         f"Requests     : "
@@ -313,9 +515,15 @@ def main():
         f"{metrics['success_rate']}%"
     )
 
-
-
     print("======================================")
+
+    # ==================================================
+    # COMPLETE
+    # ==================================================
+
+    print(
+        "\nAndy Scanner execution completed."
+    )
 
 
 if __name__ == "__main__":

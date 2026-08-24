@@ -94,3 +94,30 @@ class ProviderConfigurationError(ProviderError):
     """
 
     pass
+
+
+class ProviderMarketUnsupportedError(ProviderError):
+    """
+    Raised when a provider does not support
+    the requested canonical market.
+    """
+
+    pass
+
+
+class ProviderPlanRestrictedError(ProviderError):
+    """
+    Raised when the provider recognizes the market
+    but the current account plan cannot access it.
+    """
+
+    pass
+
+
+class ProviderRateLimitError(ProviderError):
+    """
+    Raised when the provider rejects a request
+    because of rate limiting or quota exhaustion.
+    """
+
+    pass

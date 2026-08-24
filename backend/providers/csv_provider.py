@@ -29,7 +29,7 @@ class CSVProvider(BaseProvider):
     # Load Market Data
     # ==================================================
 
-    def load(self):
+    def load(self, symbol=None):
         """
         Load candle data from the configured market CSV.
 
@@ -51,3 +51,18 @@ class CSVProvider(BaseProvider):
         loader = Loader(str(market_path))
 
         return loader.load()
+    # ==================================================
+    # Provider Probe
+    # ==================================================
+
+    def probe(self):
+        """
+        Check whether the configured market CSV exists.
+        """
+
+        return (
+            self.market_manager.market_path(
+                self.config.market
+            )
+            is not None
+        )

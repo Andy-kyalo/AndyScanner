@@ -19,9 +19,6 @@ class BaseProvider(ABC):
     """
 
     def __init__(self, config):
-        """
-        Store the scanner configuration.
-        """
         self.config = config
 
     # ==================================================
@@ -29,7 +26,7 @@ class BaseProvider(ABC):
     # ==================================================
 
     @abstractmethod
-    def load(self):
+    def load(self, symbol=None):
         """
         Load market data.
 
@@ -39,6 +36,30 @@ class BaseProvider(ABC):
         raise NotImplementedError(
             "Every provider must implement load()."
         )
+
+    # ==================================================
+    # Provider Probe
+    # ==================================================
+
+    def probe(self):
+        """
+        Perform a lightweight provider readiness check.
+
+        The base implementation does not perform a
+        provider-specific readiness check.
+
+        Concrete providers must override this method
+        when they have provider-specific readiness checks.
+
+        Returns:
+            bool
+        """
+
+        self.probe_error = (
+            f"{self.name} does not implement a readiness probe."
+        )
+
+        return False
 
     # ==================================================
     # Provider Name
@@ -59,6 +80,7 @@ class BaseProvider(ABC):
         """
         Return provider information.
         """
+
         return {
             "provider": self.name,
             "market": self.config.market,

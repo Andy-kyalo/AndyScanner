@@ -51,7 +51,7 @@ class MT5Provider(BaseProvider):
     # Load Market Data
     # ==================================================
 
-    def load(self):
+    def load(self, symbol=None):
         """
         Load candles from MT5.
         """

@@ -152,7 +152,13 @@ class ScannerPipeline:
             analyzer=context.analyzer,
             signal=context.signal,
             trade_setup=context.trade_setup,
-       )
+            provider=context.get_metadata(
+                "selected_provider"
+            ),
+            provider_symbol=context.get_metadata(
+                "provider_symbol"
+             ),
+            )
 
         result.add_metadata(
 
