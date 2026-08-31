@@ -8,15 +8,13 @@ Project: Andy Scanner
 """
 
 from backend.pipeline.pipeline_stage import PipelineStage
-from backend.trade_setup import TradeSetup
+from backend.trade_setup_engine import TradeSetupEngine
 
 
 class TradeSetupStage(PipelineStage):
     """
-    Creates the initial trade setup from a generated signal.
-
-    Detailed entry, stop-loss and take-profit calculations
-    will be implemented in a later iteration.
+    Generates a deterministic trade setup from
+    the completed analysis and trading signal.
     """
 
     def __init__(self):
@@ -25,19 +23,19 @@ class TradeSetupStage(PipelineStage):
 
     def execute(self, context):
 
-        signal = context.signal
-
-        setup = TradeSetup(
-            market=context.market,
-            timeframe=context.timeframe,
-            direction=signal.direction,
+        engine = TradeSetupEngine(
+            analysis=context.analysis,
+            signal=context.signal,
+            candles=context.candles,
         )
+
+        setup = engine.generate()
 
         context.trade_setup = setup
 
         context.set_metadata(
             "trade_setup",
-            "CREATED",
+            "VALID" if setup.valid else "INVALID",
         )
 
         return context
