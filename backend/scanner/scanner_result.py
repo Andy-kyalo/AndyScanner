@@ -21,6 +21,7 @@ class ScannerResult:
         analyzer,
         signal,
         trade_setup=None,
+        decision=None,
         provider=None,
         provider_symbol=None,
     ):
@@ -35,6 +36,7 @@ class ScannerResult:
         self.analyzer = analyzer
         self.signal = signal
         self.trade_setup = trade_setup
+        self.decision = decision
 
         # Provider information
         self.provider = provider
@@ -48,9 +50,14 @@ class ScannerResult:
         """
         Return a compact scanner-result summary.
 
-        Trade setup fields are exposed when a TradeSetup
-        exists. If no setup exists, the values remain None
-        and setup_valid is False.
+        The summary exposes:
+
+            - original signal
+            - trade setup
+            - final decision
+
+        The original signal is preserved separately from
+        the final decision for auditability.
         """
 
         # ==============================================
@@ -74,6 +81,35 @@ class ScannerResult:
             setup_valid = False
 
         # ==============================================
+        # Final Decision
+        # ==============================================
+
+        if self.decision is not None:
+
+            decision_direction = (
+                self.decision.direction
+            )
+
+            decision_confidence = (
+                self.decision.confidence
+            )
+
+            decision_reason = (
+                self.decision.reason
+            )
+
+            risk_valid = (
+                self.decision.risk_valid
+            )
+
+        else:
+
+            decision_direction = None
+            decision_confidence = None
+            decision_reason = None
+            risk_valid = False
+
+        # ==============================================
         # Summary
         # ==============================================
 
@@ -83,7 +119,11 @@ class ScannerResult:
             "candles": len(self.candles),
             "provider": self.provider,
             "provider_symbol": self.provider_symbol,
+
+            # Analysis
             "trend": self.analyzer.trend(),
+
+            # Original signal
             "signal": self.signal.direction,
             "confidence": self.signal.confidence,
 
@@ -93,6 +133,12 @@ class ScannerResult:
             "take_profit": take_profit,
             "risk_reward": risk_reward,
             "setup_valid": setup_valid,
+
+            # Final Decision
+            "decision": decision_direction,
+            "decision_confidence": decision_confidence,
+            "decision_reason": decision_reason,
+            "risk_valid": risk_valid,
         }
 
     # ==================================================
@@ -104,11 +150,18 @@ class ScannerResult:
         Return a readable representation.
         """
 
+        decision = (
+            self.decision.direction
+            if self.decision is not None
+            else None
+        )
+
         return (
             f"ScannerResult("
             f"{self.market}, "
             f"{self.timeframe}, "
             f"{self.signal.direction}, "
             f"{self.signal.confidence}%, "
+            f"decision={decision}, "
             f"provider={self.provider})"
         )

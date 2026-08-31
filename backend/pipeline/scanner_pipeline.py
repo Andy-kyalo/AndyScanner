@@ -74,7 +74,7 @@ class ScannerPipeline:
     # ==================================================
     # Execute Pipeline
     # ==================================================
-    
+
     def run(
         self,
         market,
@@ -152,6 +152,7 @@ class ScannerPipeline:
             analyzer=context.analyzer,
             signal=context.signal,
             trade_setup=context.trade_setup,
+            decision=context.decision,
             provider=context.get_metadata(
                 "selected_provider"
             ),
@@ -168,10 +169,10 @@ class ScannerPipeline:
 
             )
         return result
-    
 
-    
-          
+
+
+
 
     # ==================================================
     # Information

@@ -41,6 +41,8 @@ class PipelineContext:
         self.trade_setup = None
         self.trade_setup_validation = None
 
+        self.decision = None
+
         self.scan_result = None
 
         self.session = None
