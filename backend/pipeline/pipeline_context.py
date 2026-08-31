@@ -39,7 +39,8 @@ class PipelineContext:
         self.analyzer = None
         self.signal = None
         self.trade_setup = None
-        
+        self.trade_setup_validation = None
+
         self.scan_result = None
 
         self.session = None
@@ -53,8 +54,6 @@ class PipelineContext:
 
         self.started_at = None
         self.finished_at = None
-        
-        
 
     # ==================================================
     # Start
