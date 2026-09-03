@@ -9,7 +9,7 @@ from backend.scanner_config import ScannerConfig
 
 fake_api_response = {
     "status": "ok",
-    "data": [
+    "values": [
         {
             "time": "2026-08-09 14:00:00",
             "open": 100.0,
@@ -51,7 +51,12 @@ provider = factory.create(config)
 # Replace request() with fake API
 # ==========================================
 
-def fake_request(url, api_key=None, limit=100):
+def fake_request(
+    url,
+    symbol=None,
+    api_key=None,
+    limit=100,
+    ):
     print("FAKE API REQUEST")
     print("URL:", url)
     print("API KEY:", api_key)

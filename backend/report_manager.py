@@ -90,13 +90,24 @@ class ReportManager:
 
         if latest_scan:
 
-            print(f"ID          : {latest_scan[0]}")
-            print(f"Market      : {latest_scan[1]}")
-            print(f"Timeframe   : {latest_scan[2]}")
-            print(f"Scan Time   : {latest_scan[3]}")
-            print(f"Trend       : {latest_scan[4]}")
-            print(f"Signal      : {latest_scan[5]}")
-            print(f"Confidence  : {latest_scan[6]}%")
+            print(f"ID                  : {latest_scan[0]}")
+            print(f"Market              : {latest_scan[1]}")
+            print(f"Timeframe           : {latest_scan[2]}")
+            print(f"Scan Time           : {latest_scan[3]}")
+            print(f"Trend               : {latest_scan[4]}")
+            print(f"Signal              : {latest_scan[5]}")
+            print(f"Confidence          : {latest_scan[6]}%")
+
+            print(f"Entry               : {latest_scan[7]}")
+            print(f"Stop Loss           : {latest_scan[8]}")
+            print(f"Take Profit         : {latest_scan[9]}")
+            print(f"Risk/Reward         : {latest_scan[10]}")
+            print(f"Setup Valid         : {latest_scan[11]}")
+
+            print(f"Decision            : {latest_scan[12]}")
+            print(f"Decision Confidence : {latest_scan[13]}%")
+            print(f"Decision Reason     : {latest_scan[14]}")
+            print(f"Risk Valid          : {latest_scan[15]}")
 
         else:
 
@@ -122,13 +133,24 @@ class ReportManager:
             for scan in scans:
 
                 print("----------------------------------")
-                print(f"ID          : {scan[0]}")
-                print(f"Market      : {scan[1]}")
-                print(f"Timeframe   : {scan[2]}")
-                print(f"Scan Time   : {scan[3]}")
-                print(f"Trend       : {scan[4]}")
-                print(f"Signal      : {scan[5]}")
-                print(f"Confidence  : {scan[6]}%")
+                print(f"ID                  : {scan[0]}")
+                print(f"Market              : {scan[1]}")
+                print(f"Timeframe           : {scan[2]}")
+                print(f"Scan Time           : {scan[3]}")
+                print(f"Trend               : {scan[4]}")
+                print(f"Signal              : {scan[5]}")
+                print(f"Confidence          : {scan[6]}%")
+
+                print(f"Entry               : {scan[7]}")
+                print(f"Stop Loss           : {scan[8]}")
+                print(f"Take Profit         : {scan[9]}")
+                print(f"Risk/Reward         : {scan[10]}")
+                print(f"Setup Valid         : {scan[11]}")
+
+                print(f"Decision            : {scan[12]}")
+                print(f"Decision Confidence : {scan[13]}%")
+                print(f"Decision Reason     : {scan[14]}")
+                print(f"Risk Valid          : {scan[15]}")
 
         else:
 
@@ -157,6 +179,26 @@ class ReportManager:
         print(
             f"Average Confidence : "
             f"{statistics['average_confidence']}%"
+        )
+        print(
+            f"BUY Decisions       : "
+            f"{statistics['buy_decisions']}"
+        )
+        print(
+            f"SELL Decisions      : "
+            f"{statistics['sell_decisions']}"
+        )
+        print(
+            f"WAIT Decisions      : "
+            f"{statistics['wait_decisions']}"
+        )
+        print(
+            f"Accepted Decisions  : "
+            f"{statistics['accepted_decisions']}"
+        )
+        print(
+            f"Non-Trade Decisions : "
+            f"{statistics['non_trade_decisions']}"
         )
 
         print("=========================================")

@@ -663,4 +663,91 @@ class DatabaseManager:
 
         )
 
+        # ------------------------------------------------------
+        # Final BUY decisions
+        # ------------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM scans
+            WHERE decision IN ('BUY', 'STRONG BUY')
+            """
+        )
+
+        statistics["buy_decisions"] = (
+            cursor.fetchone()[0]
+        )
+
+        # ------------------------------------------------------
+        # Final SELL decisions
+        # ------------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM scans
+            WHERE decision IN ('SELL', 'STRONG SELL')
+            """
+        )
+
+        statistics["sell_decisions"] = (
+            cursor.fetchone()[0]
+        )
+
+        # ------------------------------------------------------
+        # Final WAIT decisions
+        # ------------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM scans
+            WHERE decision = 'WAIT'
+            """
+        )
+
+        statistics["wait_decisions"] = (
+            cursor.fetchone()[0]
+        )
+
+        # ------------------------------------------------------
+        # Accepted decisions
+        # ------------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM scans
+            WHERE decision IN (
+                'BUY',
+                'STRONG BUY',
+                'SELL',
+                'STRONG SELL'
+            )
+            AND risk_valid = 1
+            """
+        )
+
+        statistics["accepted_decisions"] = (
+            cursor.fetchone()[0]
+        )
+
+        # ------------------------------------------------------
+        # Rejected decisions
+        # ------------------------------------------------------
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM scans
+            WHERE decision = 'WAIT'
+            AND decision_reason IS NOT NULL
+            """
+        )
+
+        statistics["non_trade_decisions"] = (
+            cursor.fetchone()[0]
+        )
+
         return statistics
