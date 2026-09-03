@@ -158,6 +158,13 @@ class DatabaseManager:
             take_profit
             risk_reward
             setup_valid
+
+        New Decision fields:
+
+            decision
+            decision_confidence
+            decision_reason
+            risk_valid
         """
 
         cursor = self.connection.cursor()
@@ -198,6 +205,27 @@ class DatabaseManager:
                 "ADD COLUMN setup_valid "
                 "INTEGER DEFAULT 0"
             ),
+
+            "decision": (
+                "ALTER TABLE scans "
+                "ADD COLUMN decision TEXT"
+            ),
+
+            "decision_confidence": (
+                "ALTER TABLE scans "
+                "ADD COLUMN decision_confidence INTEGER"
+            ),
+
+            "decision_reason": (
+                "ALTER TABLE scans "
+                "ADD COLUMN decision_reason TEXT"
+            ),
+
+            "risk_valid": (
+                "ALTER TABLE scans "
+                "ADD COLUMN risk_valid "
+                "INTEGER DEFAULT 0"
+            ),
         }
 
         for column, statement in migrations.items():
@@ -220,11 +248,13 @@ class DatabaseManager:
         signal,
         confidence,
         trade_setup=None,
+        decision=None,
     ):
         """
         Save a completed market scan.
 
-        TradeSetup is optional for backward compatibility.
+        TradeSetup and Decision are optional for backward
+        compatibility.
 
         When no TradeSetup is supplied:
 
@@ -243,6 +273,11 @@ class DatabaseManager:
         risk_reward = None
         setup_valid = 0
 
+        decision_direction = None
+        decision_confidence = None
+        decision_reason = None
+        risk_valid = 0
+
         if trade_setup is not None:
 
             entry = trade_setup.entry
@@ -255,6 +290,18 @@ class DatabaseManager:
 
             setup_valid = int(
                 trade_setup.valid
+            )
+
+        if decision is not None:
+
+            decision_direction = decision.direction
+
+            decision_confidence = decision.confidence
+
+            decision_reason = decision.reason
+
+            risk_valid = int(
+                decision.risk_valid
             )
 
         cursor.execute(
@@ -272,12 +319,18 @@ class DatabaseManager:
                 stop_loss,
                 take_profit,
                 risk_reward,
-                setup_valid
+                setup_valid,
+
+                decision,
+                decision_confidence,
+                decision_reason,
+                risk_valid
 
             )
             VALUES (
                 ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?,
+                ?, ?, ?, ?
             )
             """,
             (
@@ -297,6 +350,11 @@ class DatabaseManager:
                 take_profit,
                 risk_reward,
                 setup_valid,
+
+                decision_direction,
+                decision_confidence,
+                decision_reason,
+                risk_valid,
             ),
         )
 
@@ -408,7 +466,15 @@ class DatabaseManager:
 
                 risk_reward,
 
-                setup_valid
+                setup_valid,
+
+                decision,
+
+                decision_confidence,
+
+                decision_reason,
+
+                risk_valid
 
             FROM scans
 
@@ -466,7 +532,15 @@ class DatabaseManager:
 
                 risk_reward,
 
-                setup_valid
+                setup_valid,
+
+                decision,
+
+                decision_confidence,
+
+                decision_reason,
+
+                risk_valid
 
             FROM scans
 

@@ -113,6 +113,7 @@ class DatabaseStage(PipelineStage):
                 signal=context.signal.direction,
                 confidence=context.signal.confidence,
                 trade_setup=trade_setup,
+                decision=context.decision,
             )
 
             # ==================================================

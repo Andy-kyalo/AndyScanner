@@ -10,6 +10,7 @@ import tempfile
 
 from database.database_manager import DatabaseManager
 from backend.trade_setup import TradeSetup
+from backend.decision import Decision
 
 
 def test_valid_buy_setup():
@@ -134,6 +135,46 @@ def test_wait_setup():
             assert row["setup_valid"] == 0
 
 
+def test_decision_persistence():
+
+    with tempfile.TemporaryDirectory() as directory:
+
+        database_path = os.path.join(
+            directory,
+            "test.db",
+        )
+
+        decision = Decision(
+            market="EURUSD",
+            timeframe="M5",
+            direction="BUY",
+            confidence=80,
+            signal_direction="BUY",
+            setup_valid=True,
+            risk_valid=True,
+            risk_reward=2.0,
+            reason="ACCEPTED",
+        )
+
+        with DatabaseManager(database_path) as database:
+
+            database.save_scan(
+                market="EURUSD",
+                timeframe="M5",
+                trend="UPTREND",
+                signal="BUY",
+                confidence=80,
+                decision=decision,
+            )
+
+            row = database.get_latest_scan()
+
+            assert row["decision"] == "BUY"
+            assert row["decision_confidence"] == 80
+            assert row["decision_reason"] == "ACCEPTED"
+            assert row["risk_valid"] == 1
+
+
 def test_backward_compatible_save():
 
     with tempfile.TemporaryDirectory() as directory:
@@ -195,6 +236,7 @@ def run_tests():
         test_valid_buy_setup,
         test_valid_sell_setup,
         test_wait_setup,
+        test_decision_persistence,
         test_backward_compatible_save,
         test_limit_parameter,
     ]
