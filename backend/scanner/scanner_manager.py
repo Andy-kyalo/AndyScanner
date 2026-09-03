@@ -60,7 +60,10 @@ class ScannerManager:
 
         try:
 
-            result = self.engine.run()
+            result = self.engine.execute_pipeline(
+                market,
+                timeframe,
+            )
 
             self.session.finish()
 

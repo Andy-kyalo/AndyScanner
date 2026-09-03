@@ -150,7 +150,7 @@ class ScannerQueue:
 
             for job in self._jobs:
 
-                if job.enabled and job.ready():
+                if job.enabled and job.ready:
 
                     ready.append(job)
 

@@ -50,18 +50,37 @@ class ScannerEngine:
     # Execute Pipeline
     # ==================================================
 
-    def execute_pipeline(self) -> PipelineResult:
+    def execute_pipeline(
+        self,
+        market=None,
+        timeframe=None,
+    ) -> PipelineResult:
         """
         Execute the complete scanning pipeline.
-        """
 
+        If market/timeframe are provided, they are used
+        for this execution without mutating the engine
+        configuration.
+        """
         factory = PipelineFactory()
 
         pipeline = factory.create()
 
+        scan_market = (
+            market
+            if market is not None
+            else self.config.market
+        )
+
+        scan_timeframe = (
+            timeframe
+            if timeframe is not None
+            else self.config.timeframe
+        )
+
         result = pipeline.run(
-            self.config.market,
-            self.config.timeframe,
+            scan_market,
+            scan_timeframe,
         )
 
         return result
