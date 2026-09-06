@@ -34,7 +34,7 @@ class TestSignalEngine(unittest.TestCase):
         # ConfidenceEngine scoring logic.
         engine.confidence = MockConfidence(
             confidence
-            )
+        )
 
         return engine
 
@@ -230,7 +230,6 @@ class TestSignalEngine(unittest.TestCase):
             80,
         )
 
-     
     def test_signal_contains_default_timeframe(self):
 
         engine = self.create_engine(
@@ -244,6 +243,7 @@ class TestSignalEngine(unittest.TestCase):
             signal.timeframe,
             "M5",
         )
+
     def test_signal_preserves_analysis_market_and_timeframe(self):
 
         engine = self.create_engine(
@@ -263,6 +263,84 @@ class TestSignalEngine(unittest.TestCase):
         self.assertEqual(
             signal.timeframe,
             "M15",
+        )
+
+    # ==================================================
+    # REAL CONFIDENCE ENGINE INTEGRATION
+    # ==================================================
+
+    def test_real_bullish_analysis_produces_strong_buy(self):
+
+        analysis = AnalysisResult()
+
+        analysis.market = "US30"
+        analysis.timeframe = "M5"
+        analysis.trend = "UPTREND"
+
+        analysis.bullish_bos = True
+        analysis.bullish_choch = True
+        analysis.bullish_order_block = object()
+        analysis.bullish_fvg = [object()]
+        analysis.buy_side_liquidity = [object()]
+        analysis.bullish_engulfing = [object()]
+
+        signal = SignalEngine(analysis).generate()
+
+        self.assertEqual(
+            signal.direction,
+            "STRONG BUY",
+        )
+
+        self.assertEqual(
+            signal.confidence,
+            100,
+        )
+
+    def test_real_bearish_analysis_produces_strong_sell(self):
+
+        analysis = AnalysisResult()
+
+        analysis.market = "US30"
+        analysis.timeframe = "M5"
+        analysis.trend = "DOWNTREND"
+
+        analysis.bearish_bos = True
+        analysis.bearish_choch = True
+        analysis.bearish_order_block = object()
+        analysis.bearish_fvg = [object()]
+        analysis.sell_side_liquidity = [object()]
+        analysis.bearish_engulfing = [object()]
+
+        signal = SignalEngine(analysis).generate()
+
+        self.assertEqual(
+            signal.direction,
+            "STRONG SELL",
+        )
+
+        self.assertEqual(
+            signal.confidence,
+            100,
+        )
+
+    def test_real_weak_analysis_produces_wait(self):
+
+        analysis = AnalysisResult()
+
+        analysis.market = "US30"
+        analysis.timeframe = "M5"
+        analysis.trend = "UPTREND"
+
+        signal = SignalEngine(analysis).generate()
+
+        self.assertEqual(
+            signal.direction,
+            "WAIT",
+        )
+
+        self.assertEqual(
+            signal.confidence,
+            5,
         )
 
 

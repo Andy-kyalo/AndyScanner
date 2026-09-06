@@ -225,6 +225,67 @@ class TestAnalysisStage(unittest.TestCase):
             context.get_metadata("sell_side_count"),
             context.analysis.sell_side_count,
         )
+    def test_analysis_is_recalculated_for_each_scan(self):
+        first_context = self.create_context()
+
+        second_context = self.create_context()
+
+        second_context.candles = [
+            Candle(
+                "10:00",
+                200,
+                210,
+                195,
+                205,
+            ),
+            Candle(
+                "10:05",
+                205,
+                215,
+                200,
+                212,
+            ),
+            Candle(
+                "10:10",
+                212,
+                218,
+                210,
+                217,
+            ),
+        ]
+
+        AnalysisStage().run(first_context)
+        AnalysisStage().run(second_context)
+
+        self.assertIsNot(
+            first_context.analysis,
+            second_context.analysis,
+        )
+
+        self.assertIsNot(
+            first_context.analyzer,
+            second_context.analyzer,
+        )
+
+        self.assertEqual(
+            first_context.analysis.highest_high,
+            118,
+        )
+
+        self.assertEqual(
+            second_context.analysis.highest_high,
+            218,
+        )
+
+        self.assertEqual(
+            first_context.analysis.lowest_low,
+            95,
+        )
+
+        self.assertEqual(
+            second_context.analysis.lowest_low,
+            195,
+        )
 
 
 if __name__ == "__main__":
