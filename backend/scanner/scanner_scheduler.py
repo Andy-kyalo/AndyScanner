@@ -17,7 +17,14 @@ class ScannerScheduler:
     Controls automatic scanner execution.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        queue=None,
+        executor=None,
+    ):
+
+        self.queue = queue
+        self.executor = executor
 
         self.interval = 60
 
@@ -60,6 +67,18 @@ class ScannerScheduler:
 
         self.task = task
 
+    def run_queue(self):
+        """
+        Execute all ready scanner jobs.
+        """
+
+        if self.queue is None or self.executor is None:
+            return []
+
+        return self.executor.execute_queue(
+            self.queue,
+        )
+
     # ==================================================
     # Scheduler Loop
     # ==================================================
@@ -72,7 +91,11 @@ class ScannerScheduler:
 
             try:
 
-                if self.task is not None:
+                if self.queue is not None and self.executor is not None:
+
+                    self.run_queue()
+
+                elif self.task is not None:
 
                     self.task()
 
