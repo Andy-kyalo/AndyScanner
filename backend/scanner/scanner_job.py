@@ -11,6 +11,16 @@ from datetime import datetime, timedelta
 import uuid
 
 
+TIMEFRAME_INTERVALS = {
+    "M1": 60,
+    "M5": 300,
+    "M15": 900,
+    "M30": 1800,
+    "H1": 3600,
+    "H4": 14400,
+    "D1": 86400,
+}
+
 class ScannerJob:
     """
     Represents a scheduled scanner job.
@@ -20,7 +30,7 @@ class ScannerJob:
         self,
         market,
         timeframe,
-        interval=60,
+        interval=None,
         priority=1,
         enabled=True,
     ):
@@ -30,6 +40,12 @@ class ScannerJob:
         self.market = market.upper()
 
         self.timeframe = timeframe.upper()
+
+        if interval is None:
+            interval = TIMEFRAME_INTERVALS.get(
+                self.timeframe,
+                60,
+             )
 
         self.interval = max(
             1,
