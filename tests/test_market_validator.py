@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from backend.validation.market_validator import MarketValidator
 
@@ -31,10 +32,12 @@ class TestMarketValidator(unittest.TestCase):
 
     def test_valid_market_data(self):
 
+        base_time = datetime.now(timezone.utc) - timedelta(minutes=12)
+
         candles = [
 
             Candle(
-                "10:00",
+                (base_time).strftime("%Y-%m-%d %H:%M"),
                 100,
                 110,
                 95,
@@ -42,7 +45,7 @@ class TestMarketValidator(unittest.TestCase):
             ),
 
             Candle(
-                "10:05",
+                (base_time + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M"),
                 105,
                 115,
                 100,
@@ -50,7 +53,7 @@ class TestMarketValidator(unittest.TestCase):
             ),
 
             Candle(
-                "10:10",
+                (base_time + timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M"),
                 112,
                 118,
                 110,

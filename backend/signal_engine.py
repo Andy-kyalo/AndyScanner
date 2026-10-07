@@ -1,7 +1,7 @@
 """
 signal_engine.py
 
-Professional trading signal engine.
+Riley Coleman strategy signal engine.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
@@ -9,11 +9,17 @@ Project: Andy Scanner
 
 from backend.signal import Signal
 from backend.confidence_engine import ConfidenceEngine
+from backend.riley_coleman_strategy import RileyColemanStrategy
 
 
 class SignalEngine:
     """
-    Generates trading signals from a completed AnalysisResult.
+    Generates signals from completed market analysis.
+
+    Confidence is retained as a measurement, but it is no
+    longer sufficient by itself to create a BUY or SELL.
+
+    The Riley Coleman strategy is the directional gate.
     """
 
     def __init__(self, analysis):
@@ -21,6 +27,10 @@ class SignalEngine:
         self.analysis = analysis
 
         self.confidence = ConfidenceEngine(
+            analysis
+        )
+
+        self.strategy = RileyColemanStrategy(
             analysis
         )
 
@@ -32,25 +42,7 @@ class SignalEngine:
 
         score = self.confidence.calculate()
 
-        trend = self.analysis.trend
-
-        direction = "WAIT"
-
-        if trend == "UPTREND":
-
-            if score >= 80:
-                direction = "STRONG BUY"
-
-            elif score >= 60:
-                direction = "BUY"
-
-        elif trend == "DOWNTREND":
-
-            if score >= 80:
-                direction = "STRONG SELL"
-
-            elif score >= 60:
-                direction = "SELL"
+        direction = self.strategy.evaluate()
 
         return Signal(
             market=self.analysis.market,

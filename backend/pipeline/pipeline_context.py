@@ -37,6 +37,10 @@ class PipelineContext:
         self.candles = None
 
         self.analyzer = None
+        self.analysis = None
+        self.validator = None
+        self.trend = None
+
         self.signal = None
         self.trade_setup = None
         self.trade_setup_validation = None

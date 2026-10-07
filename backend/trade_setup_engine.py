@@ -102,10 +102,23 @@ class TradeSetupEngine:
 
     def _find_entry(self):
 
-        if not self.candles:
-            return None
+        if self.signal.direction in ("BUY", "STRONG BUY"):
+            candle = self.analysis.bullish_confirmation_candle
 
-        return self.candles[-1].close
+            if candle is None:
+                return None
+
+            return candle.high
+
+        if self.signal.direction in ("SELL", "STRONG SELL"):
+            candle = self.analysis.bearish_confirmation_candle
+
+            if candle is None:
+                return None
+
+            return candle.low
+
+        return None
 
     # ==================================================
     # BUY STOP LOSS
@@ -113,14 +126,12 @@ class TradeSetupEngine:
 
     def _find_buy_stop_loss(self):
 
-        order_block = (
-            self.analysis.bullish_order_block
-        )
+        protected_low = self.analysis.protected_low
 
-        if order_block is None:
+        if protected_low is None:
             return None
 
-        return order_block.low
+        return protected_low.price
 
     # ==================================================
     # SELL STOP LOSS
@@ -128,14 +139,12 @@ class TradeSetupEngine:
 
     def _find_sell_stop_loss(self):
 
-        order_block = (
-            self.analysis.bearish_order_block
-        )
+        protected_high = self.analysis.protected_high
 
-        if order_block is None:
+        if protected_high is None:
             return None
 
-        return order_block.high
+        return protected_high.price
 
     # ==================================================
     # BUY TAKE PROFIT

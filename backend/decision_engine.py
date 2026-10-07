@@ -151,6 +151,18 @@ class DecisionEngine:
                 risk_reward=validation.risk_reward,
                 setup_valid=trade_setup.valid,
             )
+        # ==================================================
+        # Signal / Setup Direction Consistency
+        # ==================================================
+
+        if signal_direction != trade_setup.direction:
+
+            return self._rejected(
+                signal,
+                "SIGNAL_SETUP_DIRECTION_MISMATCH",
+                risk_reward=validation.risk_reward,
+                setup_valid=trade_setup.valid,
+            )
 
         # ==================================================
         # Accepted BUY / SELL

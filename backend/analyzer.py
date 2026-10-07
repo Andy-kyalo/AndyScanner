@@ -7,9 +7,7 @@ Author: Andrew Kyalo
 Project: Andy Scanner
 """
 
-from backend.swing_detector import SwingDetector
-from backend.bos_detector import BOSDetector
-from backend.choch_detector import CHOCHDetector
+from backend.market_structure_engine import MarketStructureEngine
 from backend.engulfing_detector import EngulfingDetector
 from backend.fvg_detector import FVGDetector
 from backend.liquidity_detector import LiquidityDetector
@@ -29,9 +27,7 @@ class Analyzer:
 
         self.candles = candles
 
-        self.swing = SwingDetector(candles)
-        self.bos = BOSDetector(candles)
-        self.choch = CHOCHDetector(candles)
+        self.market_structure = MarketStructureEngine(candles)
         self.engulfing = EngulfingDetector(candles)
         self.fvg = FVGDetector(candles)
         self.liquidity = LiquidityDetector(candles)
@@ -48,7 +44,7 @@ class Analyzer:
         return min(candle.low for candle in self.candles)
 
     def trend(self):
-        return self.choch.trend()
+        return self.market_structure.trend()
 
     def strongest_candle(self):
         return max(
@@ -61,30 +57,48 @@ class Analyzer:
     # ==================================================
 
     def swing_highs(self):
-        return self.swing.swing_highs()
+        return self.market_structure.swing_highs()
 
     def swing_lows(self):
-        return self.swing.swing_lows()
+        return self.market_structure.swing_lows()
 
     # ==================================================
     # BREAK OF STRUCTURE
     # ==================================================
 
     def bullish_bos(self):
-        return self.bos.bullish_bos()
+        return self.market_structure.bullish_bos()
 
     def bearish_bos(self):
-        return self.bos.bearish_bos()
+        return self.market_structure.bearish_bos()
 
     # ==================================================
     # CHANGE OF CHARACTER
     # ==================================================
 
     def bullish_choch(self):
-        return self.choch.bullish_choch()
+        return self.market_structure.bullish_choch()
 
     def bearish_choch(self):
-        return self.choch.bearish_choch()
+        return self.market_structure.bearish_choch()
+
+    def structural_state(self):
+        return self.market_structure.structural_state()
+
+    def structure(self):
+        return self.market_structure.structure()
+
+    def protected_high(self):
+        return self.market_structure.protected_high()
+
+    def protected_low(self):
+        return self.market_structure.protected_low()
+
+    def last_bos(self):
+        return self.market_structure.last_bos()
+
+    def last_choch(self):
+        return self.market_structure.last_choch()
 
     # ==================================================
     # ENGULFING PATTERNS

@@ -37,12 +37,22 @@ class AnalysisResult:
         self.bullish_choch = False
         self.bearish_choch = False
 
+        self.structural_state = "UNDEFINED"
+        self.swing_highs = []
+        self.swing_lows = []
+        self.protected_high = None
+        self.protected_low = None
+        self.last_bos = None
+        self.last_choch = None
+
         # ==========================================
         # PRICE ACTION
         # ==========================================
 
         self.bullish_engulfing = []
         self.bearish_engulfing = []
+        self.bullish_confirmation_candle = None
+        self.bearish_confirmation_candle = None
 
         # ==========================================
         # FAIR VALUE GAPS

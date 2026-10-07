@@ -9,6 +9,7 @@ Project: Andy Scanner
 
 from backend.analysis_result import AnalysisResult
 from backend.candle import Candle
+from backend.market_structure.models import StructurePoint
 from backend.signal import Signal
 from backend.trade_setup_engine import TradeSetupEngine
 
@@ -48,12 +49,20 @@ def test_buy_setup():
 
     analysis = build_analysis()
 
-    analysis.bullish_order_block = candle(
-        "09:55",
-        100,
+    analysis.bullish_confirmation_candle = candle(
+        "10:05",
         101,
-        98,
-        99,
+        103,
+        100,
+        102,
+    )
+
+    analysis.protected_low = StructurePoint(
+        index=4,
+        time="10:00",
+        price=98,
+        kind="LOW",
+        label="HL",
     )
 
     analysis.buy_side_liquidity = [
@@ -96,12 +105,20 @@ def test_strong_buy_setup():
 
     analysis = build_analysis()
 
-    analysis.bullish_order_block = candle(
-        "09:55",
-        100,
+    analysis.bullish_confirmation_candle = candle(
+        "10:05",
         101,
-        98,
-        99,
+        103,
+        100,
+        102,
+    )
+
+    analysis.protected_low = StructurePoint(
+        index=4,
+        time="10:00",
+        price=98,
+        kind="LOW",
+        label="HL",
     )
 
     analysis.buy_side_liquidity = [
@@ -144,12 +161,20 @@ def test_sell_setup():
 
     analysis = build_analysis()
 
-    analysis.bearish_order_block = candle(
-        "09:55",
-        103,
-        105,
-        102,
-        104,
+    analysis.bearish_confirmation_candle = candle(
+        "10:05",
+        99,
+        100,
+        97,
+        98,
+    )
+
+    analysis.protected_high = StructurePoint(
+        index=4,
+        time="10:00",
+        price=105,
+        kind="HIGH",
+        label="LH",
     )
 
     analysis.sell_side_liquidity = [
@@ -192,12 +217,20 @@ def test_strong_sell_setup():
 
     analysis = build_analysis()
 
-    analysis.bearish_order_block = candle(
-        "09:55",
-        103,
-        105,
-        102,
-        104,
+    analysis.bearish_confirmation_candle = candle(
+        "10:05",
+        99,
+        100,
+        97,
+        98,
+    )
+
+    analysis.protected_high = StructurePoint(
+        index=4,
+        time="10:00",
+        price=105,
+        kind="HIGH",
+        label="LH",
     )
 
     analysis.sell_side_liquidity = [
@@ -260,7 +293,7 @@ def test_wait_produces_invalid_setup():
     assert setup.risk_reward is None
 
 
-def test_buy_without_order_block_is_invalid():
+def test_buy_without_protected_low_is_invalid():
 
     candles = [
         candle("10:00", 100, 102, 99, 101),
@@ -269,6 +302,14 @@ def test_buy_without_order_block_is_invalid():
     ]
 
     analysis = build_analysis()
+
+    analysis.bullish_confirmation_candle = candle(
+        "10:05",
+        101,
+        103,
+        100,
+        102,
+    )
 
     analysis.buy_side_liquidity = [
         candle(
@@ -294,12 +335,13 @@ def test_buy_without_order_block_is_invalid():
     ).generate()
 
     assert setup.valid is False
+    assert setup.entry == 103
     assert setup.stop_loss is None
     assert setup.take_profit == 110
     assert setup.risk_reward is None
 
 
-def test_sell_without_order_block_is_invalid():
+def test_sell_without_protected_high_is_invalid():
 
     candles = [
         candle("10:00", 100, 101, 98, 99),
@@ -308,6 +350,14 @@ def test_sell_without_order_block_is_invalid():
     ]
 
     analysis = build_analysis()
+
+    analysis.bearish_confirmation_candle = candle(
+        "10:05",
+        99,
+        100,
+        97,
+        98,
+    )
 
     analysis.sell_side_liquidity = [
         candle(
@@ -333,6 +383,7 @@ def test_sell_without_order_block_is_invalid():
     ).generate()
 
     assert setup.valid is False
+    assert setup.entry == 97
     assert setup.stop_loss is None
     assert setup.take_profit == 90
     assert setup.risk_reward is None
@@ -348,12 +399,20 @@ def test_buy_without_target_is_invalid():
 
     analysis = build_analysis()
 
-    analysis.bullish_order_block = candle(
-        "09:55",
-        100,
+    analysis.bullish_confirmation_candle = candle(
+        "10:05",
         101,
-        98,
-        99,
+        103,
+        100,
+        102,
+    )
+
+    analysis.protected_low = StructurePoint(
+        index=4,
+        time="10:00",
+        price=98,
+        kind="LOW",
+        label="HL",
     )
 
     signal = Signal(
@@ -386,12 +445,20 @@ def test_sell_without_target_is_invalid():
 
     analysis = build_analysis()
 
-    analysis.bearish_order_block = candle(
-        "09:55",
-        103,
-        105,
-        102,
-        104,
+    analysis.bearish_confirmation_candle = candle(
+        "10:05",
+        99,
+        100,
+        97,
+        98,
+    )
+
+    analysis.protected_high = StructurePoint(
+        index=4,
+        time="10:00",
+        price=105,
+        kind="HIGH",
+        label="LH",
     )
 
     signal = Signal(
@@ -424,12 +491,20 @@ def test_buy_invalid_level_relationship():
 
     analysis = build_analysis()
 
-    analysis.bullish_order_block = candle(
-        "09:55",
-        105,
-        106,
-        104,
-        105,
+    analysis.bullish_confirmation_candle = candle(
+        "10:05",
+        101,
+        103,
+        100,
+        102,
+    )
+
+    analysis.protected_low = StructurePoint(
+        index=4,
+        time="10:00",
+        price=105,
+        kind="LOW",
+        label="HL",
     )
 
     analysis.buy_side_liquidity = [
@@ -469,12 +544,20 @@ def test_sell_invalid_level_relationship():
 
     analysis = build_analysis()
 
-    analysis.bearish_order_block = candle(
-        "09:55",
-        95,
-        96,
-        94,
-        95,
+    analysis.bearish_confirmation_candle = candle(
+        "10:05",
+        99,
+        100,
+        97,
+        98,
+    )
+
+    analysis.protected_high = StructurePoint(
+        index=4,
+        time="10:00",
+        price=95,
+        kind="HIGH",
+        label="LH",
     )
 
     analysis.sell_side_liquidity = [
@@ -512,8 +595,8 @@ tests = [
     test_sell_setup,
     test_strong_sell_setup,
     test_wait_produces_invalid_setup,
-    test_buy_without_order_block_is_invalid,
-    test_sell_without_order_block_is_invalid,
+    test_buy_without_protected_low_is_invalid,
+    test_sell_without_protected_high_is_invalid,
     test_buy_without_target_is_invalid,
     test_sell_without_target_is_invalid,
     test_buy_invalid_level_relationship,

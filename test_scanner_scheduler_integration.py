@@ -1,4 +1,5 @@
 import unittest
+import time
 from datetime import datetime, timedelta
 
 from backend.scanner.scanner_job import ScannerJob
