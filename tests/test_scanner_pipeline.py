@@ -437,117 +437,6 @@ class TestDeterministicFullPipeline(unittest.TestCase):
             scan.decision
         )
 
-        analyzer = scan.analyzer
-
-        print(
-            "\n"
-            "===== DETERMINISTIC PIPELINE DIAGNOSTIC ====="
-        )
-
-        print(
-            "Signal:",
-            scan.signal.direction,
-        )
-
-        print(
-            "Signal confidence:",
-            scan.signal.confidence,
-        )
-
-        print(
-            "Analyzer trend:",
-            analyzer.trend(),
-        )
-
-        print(
-            "Analyzer structural state:",
-            analyzer.structural_state(),
-        )
-
-        print(
-            "Analyzer bullish CHOCH:",
-            analyzer.bullish_choch(),
-        )
-
-        print(
-            "Analyzer bearish CHOCH:",
-            analyzer.bearish_choch(),
-        )
-
-        print(
-            "Analyzer protected low:",
-            analyzer.protected_low(),
-        )
-
-        print(
-            "Analyzer protected high:",
-            analyzer.protected_high(),
-        )
-
-        print(
-            "Trade setup:",
-            scan.trade_setup,
-        )
-
-        print(
-            "Trade setup attributes:",
-            {
-                name: getattr(
-                    scan.trade_setup,
-                    name,
-                )
-                for name in dir(scan.trade_setup)
-                if not name.startswith("_")
-                and not callable(
-                    getattr(
-                        scan.trade_setup,
-                        name,
-                    )
-                )
-            },
-        )
-
-        print(
-            "Decision:",
-            scan.decision,
-        )
-
-        print(
-            "Decision attributes:",
-            {
-                name: getattr(
-                    scan.decision,
-                    name,
-                )
-                for name in dir(scan.decision)
-                if not name.startswith("_")
-                and not callable(
-                    getattr(
-                        scan.decision,
-                        name,
-                    )
-                )
-            },
-        )
-
-        print(
-            "ScannerResult attributes:",
-            sorted(
-                name
-                for name in dir(scan)
-                if not name.startswith("_")
-            ),
-        )
-
-        print(
-            "ScannerResult metadata:",
-            result.metadata,
-        )
-
-        print(
-            "=============================================="
-        )
-
         self.assertEqual(
             scan.signal.direction,
             "BUY",
@@ -583,6 +472,317 @@ class TestDeterministicFullPipeline(unittest.TestCase):
         self.assertEqual(
             scan.decision.reason,
             "ACCEPTED",
+        )
+
+        self.assertEqual(
+            result.metadata["stages"],
+            8,
+        )
+
+        self.assertEqual(
+            database.scan_exists.call_count,
+            1,
+        )
+
+        database.save_signal.assert_called_once()
+
+        database.save_scan.assert_called_once()
+
+    def test_analysis_to_decision_executes_wait_through_production_stages(self):
+
+        from backend.pipeline.stages.mapping_stage import MappingStage
+        from backend.pipeline.stages.validation_stage import ValidationStage
+        from backend.pipeline.stages.analysis_stage import AnalysisStage
+        from backend.pipeline.stages.signal_stage import SignalStage
+        from backend.pipeline.stages.trade_setup_stage import TradeSetupStage
+        from backend.pipeline.stages.database_stage import DatabaseStage
+        from backend.pipeline.stages.report_stage import ReportStage
+
+        class Candle:
+
+            def __init__(
+                self,
+                time,
+                open_,
+                high,
+                low,
+                close,
+            ):
+                self.time = time
+                self.open = open_
+                self.high = high
+                self.low = low
+                self.close = close
+
+            def is_bullish(self):
+                return self.close > self.open
+
+            def is_bearish(self):
+                return self.close < self.open
+
+            def body_size(self):
+                return abs(
+                    self.close - self.open
+                )
+
+        candles = [
+
+            # 0
+            Candle(
+                "2026-01-01 00:00:00",
+                100,
+                100,
+                99,
+                100,
+            ),
+
+            # 1 - INITIAL HIGH
+            Candle(
+                "2026-01-01 00:01:00",
+                100,
+                106,
+                99,
+                105,
+            ),
+
+            # 2 - INITIAL LOW
+            Candle(
+                "2026-01-01 00:02:00",
+                105,
+                105,
+                90,
+                92,
+            ),
+
+            # 3 - LH
+            Candle(
+                "2026-01-01 00:03:00",
+                92,
+                106,
+                91,
+                100,
+            ),
+
+            # 4 - LL
+            Candle(
+                "2026-01-01 00:04:00",
+                100,
+                101,
+                85,
+                95,
+            ),
+
+            # 5 - confirms LL
+            Candle(
+                "2026-01-01 00:05:00",
+                95,
+                100,
+                86,
+                90,
+            ),
+
+            # 6 - bearish STRUCTURE_BREAK
+            Candle(
+                "2026-01-01 00:06:00",
+                90,
+                92,
+                78,
+                80,
+            ),
+
+            # 7 - bullish CHOCH
+            Candle(
+                "2026-01-01 00:07:00",
+                90,
+                130,
+                89,
+                110,
+            ),
+
+            # 8 - protected HL
+            Candle(
+                "2026-01-01 00:08:00",
+                110,
+                112,
+                88,
+                100,
+            ),
+
+            # 9 - bearish candle before confirmation
+            Candle(
+                "2026-01-01 00:09:00",
+                102,
+                103,
+                90,
+                98,
+            ),
+
+            # 10 - bullish candle WITHOUT engulfing confirmation
+            #
+            # Previous candle:
+            #   open 102 -> close 98
+            #
+            # Current candle:
+            #   open 98 == previous close 98
+            #
+            # Therefore current.open > previous.close is false
+            # and the bullish engulfing condition is not satisfied.
+            Candle(
+                "2026-01-01 00:10:00",
+                98,
+                104,
+                96,
+                103,
+            ),
+
+            # 11 - final LL
+            Candle(
+                "2026-01-01 00:11:00",
+                105,
+                105,
+                75,
+                95,
+            ),
+
+            # 12 - confirms final LL
+            Candle(
+                "2026-01-01 00:12:00",
+                95,
+                105,
+                76,
+                100,
+            ),
+        ]
+
+        pipeline = ScannerPipeline()
+
+        pipeline.add_stage(
+            DeterministicProviderStage(
+                candles
+            )
+        )
+
+        pipeline.add_stage(
+            MappingStage()
+        )
+
+        pipeline.add_stage(
+            ValidationStage()
+        )
+
+        pipeline.add_stage(
+            AnalysisStage()
+        )
+
+        pipeline.add_stage(
+            SignalStage()
+        )
+
+        pipeline.add_stage(
+            TradeSetupStage()
+        )
+
+        with patch(
+            "backend.pipeline.stages.database_stage.DatabaseManager"
+        ) as database_manager, patch(
+            "backend.validation.market_validator.FreshnessValidator.validate"
+        ) as freshness_validate:
+
+            freshness_validate.return_value = (
+                True,
+                "Market data freshness validation passed.",
+            )
+
+            database = (
+                database_manager
+                .return_value
+                .__enter__
+                .return_value
+            )
+
+            database.scan_exists.return_value = False
+
+            pipeline.add_stage(
+                DatabaseStage()
+            )
+
+            pipeline.add_stage(
+                ReportStage()
+            )
+
+            result = pipeline.run(
+                "EUR/USD",
+                "M1",
+            )
+
+        self.assertTrue(
+            result.success,
+            result.message,
+        )
+
+        scan = result.metadata[
+            "scan_result"
+        ]
+
+        self.assertIsNotNone(
+            scan.signal
+        )
+
+        self.assertIsNotNone(
+            scan.trade_setup
+        )
+
+        self.assertIsNotNone(
+            scan.decision
+        )
+
+        self.assertEqual(
+            scan.signal.direction,
+            "WAIT",
+        )
+
+        self.assertEqual(
+            scan.trade_setup.direction,
+            "WAIT",
+        )
+
+        self.assertFalse(
+            scan.trade_setup.valid,
+        )
+
+        self.assertIsNone(
+            scan.trade_setup.entry,
+        )
+
+        self.assertIsNone(
+            scan.trade_setup.stop_loss,
+        )
+
+        self.assertIsNone(
+            scan.trade_setup.take_profit,
+        )
+
+        self.assertEqual(
+            scan.decision.direction,
+            "WAIT",
+        )
+
+        self.assertEqual(
+            scan.decision.signal_direction,
+            "WAIT",
+        )
+
+        self.assertFalse(
+            scan.decision.setup_valid,
+        )
+
+        self.assertFalse(
+            scan.decision.risk_valid,
+        )
+
+        self.assertEqual(
+            scan.decision.reason,
+            "STRUCTURALLY_INVALID",
         )
 
         self.assertEqual(
@@ -750,7 +950,8 @@ class TestDeterministicFullPipeline(unittest.TestCase):
             ),
 
             # 12 - lower-high preparation
-            # Kept below candle 13 high.
+            # High must remain below candle 11 and above candle 13
+            # so candle 13 can become a local LH.
             Candle(
                 "2026-01-01 00:12:00",
                 90,
@@ -789,7 +990,7 @@ class TestDeterministicFullPipeline(unittest.TestCase):
             ),
 
             # 15 - post-confirmation structure
-            # Does not break the protected low.
+            # Valid OHLC and does not break the protected low.
             Candle(
                 "2026-01-01 00:15:00",
                 90,
@@ -799,7 +1000,7 @@ class TestDeterministicFullPipeline(unittest.TestCase):
             ),
 
             # 16 - final HH
-            # High 96 > protected LH 95.
+            # High 120 > protected LH 95.
             # Close remains below 95, so this does not create
             # a bullish structural break.
             Candle(
@@ -807,16 +1008,16 @@ class TestDeterministicFullPipeline(unittest.TestCase):
                 92,
                 120,
                 90,
-                93,
+                94,
             ),
 
             # 17 - confirms final HH
             Candle(
                 "2026-01-01 00:17:00",
-                93,
                 94,
-                91,
-                92,
+                95,
+                90,
+                93,
             ),
         ]
 
