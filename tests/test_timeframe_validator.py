@@ -1,88 +1,191 @@
 """
-timeframe_validator.py
+test_timeframe_validator.py
 
-Validates candle timeframe consistency.
+Regression tests for the production TimeframeValidator.
 
 Author: Andrew Kyalo
 Project: Andy Scanner
-Version: 0.5.0
 """
 
-from datetime import datetime
+import unittest
+from datetime import datetime, timedelta, timezone
+
+from backend.candle import Candle
+from backend.validation.validators.timeframe_validator import (
+    TimeframeValidator,
+)
 
 
-class TimeframeValidator:
-    """
-    Validates that candles follow the expected timeframe.
-    """
+class TestTimeframeValidator(unittest.TestCase):
 
-    TIMEFRAME_MAP = {
-        "M1": 60,
-        "M5": 300,
-        "M15": 900,
-        "M30": 1800,
-        "H1": 3600,
-        "H4": 14400,
-        "D1": 86400,
-    }
+    def setUp(self):
+        self.validator = TimeframeValidator()
 
-    # ==================================================
-    # Validation
-    # ==================================================
-
-    def validate(self, candles, timeframe):
-        """
-        Validate candle spacing.
-
-        Parameters
-        ----------
-        candles : list
-        timeframe : str
-
-        Returns
-        -------
-        tuple(bool, str)
-        """
-
-        timeframe = timeframe.upper()
-
-        expected_gap = self.TIMEFRAME_MAP.get(timeframe)
-
-        if expected_gap is None:
-            return (
-                False,
-                f"Unsupported timeframe '{timeframe}'."
+    @staticmethod
+    def make_candles(times):
+        return [
+            Candle(
+                time=timestamp,
+                open_price=100,
+                high=102,
+                low=98,
+                close=101,
             )
+            for timestamp in times
+        ]
 
-        if len(candles) < 2:
-            return (
-                True,
-                "Not enough candles to validate timeframe."
-            )
-
-        for i in range(1, len(candles)):
-
-            previous = datetime.strptime(
-                candles[i - 1].time,
-                "%H:%M"
-            )
-
-            current = datetime.strptime(
-                candles[i].time,
-                "%H:%M"
-            )
-
-            gap = (current - previous).seconds
-
-            if gap != expected_gap:
-                return (
-                    False,
-                    f"Invalid timeframe gap between "
-                    f"{candles[i - 1].time} and "
-                    f"{candles[i].time}."
-                )
-
-        return (
-            True,
-            "Timeframe validation passed."
+    def test_valid_chronological_candles_pass(self):
+        start = datetime(
+            2026, 10, 9, 8, 0,
+            tzinfo=timezone.utc,
         )
+
+        candles = self.make_candles([
+            start.strftime("%Y-%m-%d %H:%M:%S"),
+            (start + timedelta(minutes=5)).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+            (start + timedelta(minutes=10)).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M5"
+        )
+
+        self.assertTrue(valid, message)
+        self.assertEqual(
+            message,
+            "Timeframe validation passed.",
+        )
+
+    def test_reverse_chronological_order_is_rejected(self):
+        start = datetime(
+            2026, 10, 9, 8, 10,
+            tzinfo=timezone.utc,
+        )
+
+        candles = self.make_candles([
+            start.strftime("%Y-%m-%d %H:%M:%S"),
+            (start - timedelta(minutes=5)).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M5"
+        )
+
+        self.assertFalse(valid)
+        self.assertIn(
+            "chronological order",
+            message,
+        )
+
+    def test_duplicate_timestamps_are_rejected(self):
+        timestamp = "2026-10-09 08:00:00"
+        candles = self.make_candles([
+            timestamp,
+            timestamp,
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M5"
+        )
+
+        self.assertFalse(valid)
+        self.assertIn(
+            "chronological order",
+            message,
+        )
+
+    def test_incorrect_timeframe_gap_is_rejected(self):
+        candles = self.make_candles([
+            "2026-10-09 08:00:00",
+            "2026-10-09 08:06:00",
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M5"
+        )
+
+        self.assertFalse(valid)
+        self.assertIn(
+            "Invalid timeframe gap",
+            message,
+        )
+
+    def test_unsupported_timeframe_is_rejected(self):
+        candles = self.make_candles([
+            "2026-10-09 08:00:00",
+            "2026-10-09 08:05:00",
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M7"
+        )
+
+        self.assertFalse(valid)
+        self.assertIn(
+            "Unsupported timeframe",
+            message,
+        )
+
+    def test_unsupported_timestamp_format_is_rejected(self):
+        candles = self.make_candles([
+            "08:00",
+            "08:05",
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M5"
+        )
+
+        self.assertFalse(valid)
+        self.assertIn(
+            "Unsupported candle timestamp format",
+            message,
+        )
+
+    def test_datetime_objects_are_supported(self):
+        start = datetime(
+            2026, 10, 9, 8, 0,
+            tzinfo=timezone.utc,
+        )
+
+        candles = self.make_candles([
+            start,
+            start + timedelta(minutes=5),
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M5"
+        )
+
+        self.assertTrue(valid, message)
+
+    def test_single_candle_does_not_require_spacing_check(self):
+        candles = self.make_candles([
+            "2026-10-09 08:00:00",
+        ])
+
+        valid, message = self.validator.validate(
+            candles, "M5"
+        )
+
+        self.assertTrue(valid, message)
+    def test_iso_timezone_offset_timestamps_are_supported(self):
+        candles = self.make_candles([
+            "2026-10-09T10:00:00Z",
+            "2026-10-09T12:05:00+02:00",
+        ])
+
+        valid, message = self.validator.validate(candles, "M5")
+
+        self.assertTrue(valid, message)
+
+
+
+if __name__ == "__main__":
+    unittest.main()

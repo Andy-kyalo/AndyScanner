@@ -57,6 +57,7 @@ class PipelineContext:
         self.error = None
 
         self.metadata = {}
+        self.provider_config = None
 
         self.started_at = None
         self.finished_at = None

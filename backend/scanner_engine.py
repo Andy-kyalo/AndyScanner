@@ -81,6 +81,11 @@ class ScannerEngine:
         result = pipeline.run(
             scan_market,
             scan_timeframe,
+            metadata={
+                "data_source": self.config.data_source,
+                "provider_priority": self.config.provider_priority,
+            },
+            provider_config=self.config,
         )
 
         return result
@@ -213,15 +218,16 @@ class ScannerEngine:
                     ),
                 ):
 
-                    database.save_signal(signal)
+                    with database.transaction():
+                        database.save_signal(signal)
 
-                    database.save_scan(
-                        market=market,
-                        timeframe=timeframe,
-                        trend=trend,
-                        signal=signal.direction,
-                        confidence=signal.confidence,
-                    )
+                        database.save_scan(
+                            market=market,
+                            timeframe=timeframe,
+                            trend=trend,
+                            signal=signal.direction,
+                            confidence=signal.confidence,
+                        )
 
                     self.logger.info(
                         "Database",

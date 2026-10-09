@@ -781,7 +781,39 @@ class TestAnalysisStage(unittest.TestCase):
             confirmation_index,
             context.analysis.protected_high.index,
         )
+    def test_malformed_confirmation_timestamp_is_rejected(self):
+        context, base = self.create_completion_fixture()
 
+        confirmation = context.candles[11]
+        confirmation.time = "invalid-timestamp"
+
+        context.set_metadata(
+            "now",
+            base + timedelta(minutes=60),
+        )
+
+        AnalysisStage().run(context)
+
+        self.assertIsNone(
+            context.analysis.bullish_confirmation_candle
+        )
+        self.assertIsNone(
+            context.analysis.bearish_confirmation_candle
+        )
+
+    def test_timezone_aware_now_is_supported(self):
+        context, base = self.create_completion_fixture()
+
+        context.set_metadata(
+            "now",
+            base + timedelta(minutes=60),
+        )
+
+        AnalysisStage().run(context)
+
+        self.assertIsNotNone(
+            context.analysis.bullish_confirmation_candle
+        )
 
 if __name__ == "__main__":
     unittest.main()

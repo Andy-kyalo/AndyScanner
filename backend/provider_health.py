@@ -10,6 +10,9 @@ Project: Andy Scanner
 from datetime import datetime
 
 from backend.logger import Logger
+from backend.log_redaction import redact_secrets
+from backend.provider_retry import ProviderRetry
+from backend.provider_timeout import ProviderTimeout
 
 
 class ProviderHealth:
@@ -58,8 +61,23 @@ class ProviderHealth:
                 raise ValueError(
                     "Provider does not implement probe()."
                 )
-            # Perform provider readiness probe.
-            probe_result = self.provider.probe()
+
+            # Perform provider readiness probe with
+            # bounded timeout and retry protection.
+            timeout = ProviderTimeout(
+                timeout=10.0,
+            )
+
+            retry = ProviderRetry(
+                retries=3,
+                delay=1.0,
+            )
+
+            probe_result = retry.execute(
+                lambda: timeout.execute(
+                    self.provider.probe
+                )
+            )
 
             if probe_result is not True:
                 probe_error = getattr(
@@ -103,10 +121,10 @@ class ProviderHealth:
             self.consecutive_failures += 1
 
             self.last_failure = datetime.now()
-            self.last_error = str(error)
+            self.last_error = redact_secrets(str(error))
 
             self.logger.error_log(
-                f"Provider Health Failed: {error}"
+                f"Provider Health Failed: {self.last_error}"
             )
 
             return False

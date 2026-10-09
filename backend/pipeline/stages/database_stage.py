@@ -82,39 +82,39 @@ class DatabaseStage(PipelineStage):
             # Signal
             # ==================================================
 
-            database.save_signal(
-                context.signal
-            )
+            with database.transaction():
+                database.save_signal(
+                    context.signal
+                )
 
-            # ==================================================
-            # Analysis
-            # ==================================================
+                # ==================================================
+                # Analysis
+                # ==================================================
 
-            trend = None
+                trend = None
 
-            if context.analysis is not None:
+                if context.analysis is not None:
+                    trend = context.analysis.trend
 
-                trend = context.analysis.trend
+                # ==================================================
+                # Trade Setup
+                # ==================================================
 
-            # ==================================================
-            # Trade Setup
-            # ==================================================
+                trade_setup = context.trade_setup
 
-            trade_setup = context.trade_setup
+                # ==================================================
+                # Save Scan
+                # ==================================================
 
-            # ==================================================
-            # Save Scan
-            # ==================================================
-
-            database.save_scan(
-                market=context.market,
-                timeframe=context.timeframe,
-                trend=trend,
-                signal=context.signal.direction,
-                confidence=context.signal.confidence,
-                trade_setup=trade_setup,
-                decision=context.decision,
-            )
+                database.save_scan(
+                    market=context.market,
+                    timeframe=context.timeframe,
+                    trend=trend,
+                    signal=context.signal.direction,
+                    confidence=context.signal.confidence,
+                    trade_setup=trade_setup,
+                    decision=context.decision,
+                )
 
             # ==================================================
             # Database Metadata

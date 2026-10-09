@@ -138,6 +138,111 @@ class TestScannerPipeline(unittest.TestCase):
         )
 
 
+    def test_pipeline_contains_lifecycle_hook_failures(self):
+
+        for failing_hook in ("before_execute", "after_execute"):
+            with self.subTest(hook=failing_hook):
+                executed = []
+
+                class HookFailureStage(PipelineStage):
+
+                    def __init__(self):
+                        super().__init__("Hook Failure Stage")
+
+                    def before_execute(self, context):
+                        if failing_hook == "before_execute":
+                            raise RuntimeError("Lifecycle hook failure")
+                        return context
+
+                    def execute(self, context):
+                        executed.append("execute")
+                        return context
+
+                    def after_execute(self, context):
+                        if failing_hook == "after_execute":
+                            raise RuntimeError("Lifecycle hook failure")
+                        return context
+
+                class DownstreamStage(PipelineStage):
+
+                    def __init__(self):
+                        super().__init__("Downstream Stage")
+
+                    def execute(self, context):
+                        executed.append("downstream")
+                        return context
+
+                pipeline = ScannerPipeline()
+                pipeline.add_stage(HookFailureStage())
+                pipeline.add_stage(DownstreamStage())
+
+                result = pipeline.run("TEST", "M1")
+
+                self.assertFalse(result.success)
+                self.assertIsInstance(result.error, RuntimeError)
+                self.assertIn("Hook Failure Stage", result.message)
+                self.assertNotIn("scan_result", result.metadata)
+
+                if failing_hook == "before_execute":
+                    self.assertEqual(executed, [])
+                else:
+                    self.assertEqual(executed, ["execute"])
+
+
+    def test_pipeline_stops_after_stage_failure(self):
+
+        executed = []
+
+        class FailingStage(PipelineStage):
+
+            def __init__(self):
+                super().__init__("Failing Stage")
+
+            def execute(self, context):
+                executed.append("failing")
+                raise RuntimeError("Expected test failure")
+
+        class DownstreamStage(PipelineStage):
+
+            def __init__(self):
+                super().__init__("Downstream Stage")
+
+            def execute(self, context):
+                executed.append("downstream")
+                return context
+
+        pipeline = ScannerPipeline()
+        pipeline.add_stage(FailingStage())
+        pipeline.add_stage(DownstreamStage())
+
+        result = pipeline.run("TEST", "M1")
+
+        self.assertFalse(result.success)
+        self.assertEqual(executed, ["failing"])
+        self.assertIsInstance(result.error, RuntimeError)
+        self.assertIn("Failing Stage", result.message)
+        self.assertNotIn("scan_result", result.metadata)
+
+
+    def test_failed_pipeline_does_not_publish_scan_result(self):
+
+        class FailingStage(PipelineStage):
+
+            def __init__(self):
+                super().__init__("Failing Stage")
+
+            def execute(self, context):
+                raise RuntimeError("Intentional failure")
+
+        pipeline = ScannerPipeline()
+        pipeline.add_stage(FailingStage())
+
+        result = pipeline.run("TEST", "M1")
+
+        self.assertFalse(result.success)
+        self.assertNotIn("scan_result", result.metadata)
+
+
 class DeterministicProviderStage(PipelineStage):
 
     def __init__(self, candles):
@@ -1163,6 +1268,59 @@ class TestDeterministicFullPipeline(unittest.TestCase):
 
         database.save_scan.assert_called_once()
 
+
+
+class TestPipelineExecutionMetrics(unittest.TestCase):
+
+    def test_successful_run_records_metrics_and_duration(self):
+        pipeline = ScannerPipeline()
+        pipeline.add_stage(RecordingStage("Metrics Stage", []))
+
+        result = pipeline.run("TEST", "M1")
+
+        self.assertTrue(result.success, result.message)
+        self.assertEqual(pipeline.metrics.total_runs, 1)
+        self.assertEqual(pipeline.metrics.successful_runs, 1)
+        self.assertEqual(pipeline.metrics.failed_runs, 0)
+        self.assertGreaterEqual(pipeline.metrics.total_execution_time, 0)
+        self.assertGreaterEqual(result.metadata["duration"], 0)
+        self.assertIsNotNone(pipeline.metrics.last_execution)
+
+    def test_failed_run_records_failure_metrics(self):
+        class FailingMetricsStage(PipelineStage):
+            def __init__(self):
+                super().__init__("Metrics Failure Stage")
+
+            def execute(self, context):
+                raise RuntimeError("Synthetic metrics failure")
+
+        pipeline = ScannerPipeline()
+        pipeline.add_stage(FailingMetricsStage())
+
+        result = pipeline.run("TEST", "M1")
+
+        self.assertFalse(result.success)
+        self.assertEqual(pipeline.metrics.total_runs, 1)
+        self.assertEqual(pipeline.metrics.successful_runs, 0)
+        self.assertEqual(pipeline.metrics.failed_runs, 1)
+        self.assertGreaterEqual(result.metadata["duration"], 0)
+
+    def test_logging_failure_does_not_change_pipeline_outcome(self):
+        pipeline = ScannerPipeline()
+        pipeline.add_stage(RecordingStage("Logging Failure Stage", []))
+
+        with patch(
+            "backend.pipeline.scanner_pipeline.logger.info",
+            side_effect=RuntimeError("synthetic log failure"),
+        ), patch(
+            "backend.pipeline.scanner_pipeline.logger.error_log",
+            side_effect=RuntimeError("synthetic log failure"),
+        ):
+            result = pipeline.run("TEST", "M1")
+
+        self.assertTrue(result.success, result.message)
+        self.assertEqual(pipeline.metrics.total_runs, 1)
+        self.assertEqual(pipeline.metrics.successful_runs, 1)
 
 if __name__ == "__main__":
     unittest.main()

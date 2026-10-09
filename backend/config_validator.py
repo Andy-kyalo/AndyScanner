@@ -35,22 +35,59 @@ def validate_config():
         if not str(value).strip()
     ]
 
-    print("\n========== CONFIGURATION ==========")
+    data_source = str(
+        Config.DATA_SOURCE
+    ).strip().upper()
+
+    if not data_source:
+        missing.append(
+            "DATA_SOURCE"
+        )
+
+    if (
+        data_source == "TWELVEDATA"
+        and not str(
+            Config.API_KEY
+        ).strip()
+    ):
+        missing.append(
+            "API_KEY"
+        )
+
+    print(
+        "\n========== CONFIGURATION =========="
+    )
 
     if missing:
-        print("Status : INVALID")
+
+        print(
+            "Status : INVALID"
+        )
+
         print()
 
-        print("Missing Configuration:")
+        print(
+            "Missing Configuration:"
+        )
 
         for item in missing:
-            print(f" • {item}")
 
-        print("===================================")
+            print(
+                f" • {item}"
+            )
+
+        print(
+            "==================================="
+        )
 
         raise RuntimeError(
             "Configuration validation failed."
         )
 
-    print("Status : VALID")
-    print("===================================")
+    print(
+        "Status : VALID"
+    )
+
+    print(
+        "==================================="
+    )

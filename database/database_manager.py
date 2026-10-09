@@ -9,6 +9,7 @@ Project: Andy Scanner
 """
 
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime
 
 
@@ -21,6 +22,7 @@ class DatabaseManager:
 
         self.database_path = database_path
         self.connection = None
+        self._transaction_active = False
 
     # ==========================================================
     # Context Manager
@@ -43,6 +45,32 @@ class DatabaseManager:
         """Close database connection automatically."""
 
         self.close()
+
+
+    @contextmanager
+    def transaction(self):
+        """Commit grouped database operations atomically."""
+
+        if self.connection is None:
+            raise RuntimeError(
+                "Database connection is not open."
+            )
+
+        if self._transaction_active:
+            raise RuntimeError(
+                "Nested database transactions are not supported."
+            )
+
+        self._transaction_active = True
+
+        try:
+            yield self
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
+        finally:
+            self._transaction_active = False
 
     # ==========================================================
     # Connection Management
@@ -358,7 +386,8 @@ class DatabaseManager:
             ),
         )
 
-        self.connection.commit()
+        if not self._transaction_active:
+            self.connection.commit()
 
     def save_signal(self, signal):
         """
@@ -392,7 +421,8 @@ class DatabaseManager:
             ),
         )
 
-        self.connection.commit()
+        if not self._transaction_active:
+            self.connection.commit()
 
     # ==========================================================
     # Validation

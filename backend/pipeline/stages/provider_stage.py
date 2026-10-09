@@ -82,17 +82,25 @@ class ProviderStage(PipelineStage):
                     provider_name
                 )
 
+        supplied_config = getattr(
+            context,
+            "provider_config",
+            None,
+        )
+
         config = ScannerConfig(
             market=context.market,
             timeframe=context.timeframe,
             data_source=data_source,
-            api_url=context.get_metadata(
-                "api_url",
-                Config.API_URL,
+            api_url=(
+                supplied_config.api_url
+                if supplied_config is not None
+                else Config.API_URL
             ),
-            api_key=context.get_metadata(
-                "api_key",
-                Config.API_KEY,
+            api_key=(
+                supplied_config.api_key
+                if supplied_config is not None
+                else Config.API_KEY
             ),
             provider_priority=provider_priority,
         )
