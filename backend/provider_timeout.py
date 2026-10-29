@@ -10,7 +10,7 @@ Project: Andy Scanner
 import threading
 
 from backend.provider_exceptions import (
-    ProviderTimeoutError,
+    ProviderOperationTimeoutError,
 )
 
 
@@ -52,9 +52,9 @@ class ProviderTimeout:
 
         if thread.is_alive():
 
-            raise ProviderTimeoutError(
+            raise ProviderOperationTimeoutError(
                 f"Provider operation exceeded "
-                f"{self.timeout} seconds."
+                f"{self.timeout} seconds and may still be running."
             )
 
         if "exception" in error:

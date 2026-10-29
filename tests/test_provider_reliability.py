@@ -95,6 +95,45 @@ class TestProviderRetry(unittest.TestCase):
         operation.assert_called_once()
         mock_sleep.assert_not_called()
 
+    @patch("backend.provider_retry.time.sleep")
+    def test_running_operation_timeout_is_not_retried(
+        self,
+        mock_sleep,
+    ):
+        from backend.provider_exceptions import (
+            ProviderOperationTimeoutError,
+        )
+
+        operation = unittest.mock.Mock(
+            side_effect=ProviderOperationTimeoutError(
+                "operation is still running"
+            )
+        )
+        retry = ProviderRetry(retries=3, delay=1.0)
+
+        with self.assertRaises(ProviderOperationTimeoutError):
+            retry.execute(operation)
+
+        operation.assert_called_once()
+        mock_sleep.assert_not_called()
+
+    @patch("backend.provider_retry.time.sleep")
+    def test_provider_http_timeout_remains_retryable(
+        self,
+        mock_sleep,
+    ):
+        operation = unittest.mock.Mock(
+            side_effect=[
+                ProviderTimeoutError("HTTP request timed out"),
+                "success",
+            ]
+        )
+        retry = ProviderRetry(retries=3, delay=1.0)
+
+        self.assertEqual(retry.execute(operation), "success")
+        self.assertEqual(operation.call_count, 2)
+        mock_sleep.assert_called_once_with(1.0)
+
 
 class TestProviderTimeout(unittest.TestCase):
 
@@ -109,17 +148,55 @@ class TestProviderTimeout(unittest.TestCase):
 
         self.assertEqual(result, "success")
 
-    def test_operation_exceeding_timeout_raises(self):
-        timeout = ProviderTimeout(
-            timeout=0.05,
+    def test_operation_exceeding_timeout_raises_compatible_exception(self):
+        from backend.provider_exceptions import (
+            ProviderOperationTimeoutError,
         )
+
+        timeout = ProviderTimeout(timeout=0.05)
 
         def slow_operation():
             time.sleep(0.2)
             return "late"
 
+        with self.assertRaises(ProviderOperationTimeoutError):
+            timeout.execute(slow_operation)
+
+        # Existing callers catching ProviderTimeoutError remain compatible.
+        self.assertTrue(
+            issubclass(
+                ProviderOperationTimeoutError,
+                ProviderTimeoutError,
+            )
+        )
+
+    def test_wrapper_timeout_does_not_cancel_background_worker(self):
+        import threading
+
+        started = threading.Event()
+        finished = threading.Event()
+
+        def slow_operation():
+            started.set()
+            time.sleep(0.2)
+            finished.set()
+            return "late"
+
+        timeout = ProviderTimeout(timeout=0.05)
+
         with self.assertRaises(ProviderTimeoutError):
             timeout.execute(slow_operation)
+
+        self.assertTrue(started.is_set())
+        self.assertFalse(
+            finished.is_set(),
+            "Operation should still be running when timeout is reported.",
+        )
+
+        self.assertTrue(
+            finished.wait(timeout=1.0),
+            "Background operation did not finish within the test bound.",
+        )
 
 
 class TestProviderRecovery(unittest.TestCase):

@@ -422,6 +422,35 @@ def test_decision_summary():
     print("PASS: test_decision_summary")
 
 
+
+def test_signal_setup_direction_mismatch():
+    signal = make_signal("BUY")
+    setup = make_setup("SELL", entry=100.0, stop_loss=105.0, take_profit=90.0)
+    validation = make_validation()
+
+    decision = DecisionEngine().generate(signal, setup, validation)
+
+    assert decision.direction == "WAIT"
+    assert decision.reason == "SIGNAL_SETUP_DIRECTION_MISMATCH"
+    assert decision.risk_valid is False
+
+    print("PASS: test_signal_setup_direction_mismatch")
+
+
+def test_unsupported_signal_direction():
+    signal = make_signal("HOLD")
+    setup = make_setup("HOLD")
+    validation = make_validation()
+
+    decision = DecisionEngine().generate(signal, setup, validation)
+
+    assert decision.direction == "WAIT"
+    assert decision.reason == "UNSUPPORTED_DIRECTION"
+    assert decision.risk_valid is False
+
+    print("PASS: test_unsupported_signal_direction")
+
+
 # ==========================================================
 # MAIN
 # ==========================================================
@@ -444,6 +473,8 @@ def main():
         test_missing_validation,
         test_missing_signal,
         test_decision_summary,
+        test_signal_setup_direction_mismatch,
+        test_unsupported_signal_direction,
     ]
 
     passed = 0

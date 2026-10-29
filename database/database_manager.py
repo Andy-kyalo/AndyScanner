@@ -755,6 +755,7 @@ class DatabaseManager:
                 'SELL',
                 'STRONG SELL'
             )
+            AND setup_valid = 1
             AND risk_valid = 1
             """
         )
@@ -772,7 +773,6 @@ class DatabaseManager:
             SELECT COUNT(*)
             FROM scans
             WHERE decision = 'WAIT'
-            AND decision_reason IS NOT NULL
             """
         )
 

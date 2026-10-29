@@ -164,52 +164,22 @@ class TwelveDataProvider(BaseProvider):
         data,
     ):
         """
-        Convert Twelve Data HTTP/API errors into
-        structured AndyScanner provider exceptions.
+        Convert Twelve Data errors into safe, structured
+        AndyScanner provider exceptions.
         """
 
         if isinstance(data, dict):
-
-            message = str(
-                data.get(
-                    "message",
-                    data,
-                )
-            )
-
-            code = data.get(
-                "code",
-                status_code,
-            )
-
+            message = str(data.get("message", ""))
+            code = data.get("code", status_code)
         else:
-
-            message = str(data)
+            message = ""
             code = status_code
 
         normalized = message.lower()
 
         # --------------------------------------------------
-        # Authentication
-        # --------------------------------------------------
-
-        if (
-            status_code in (401, 403)
-            or "apikey" in normalized
-            or "api key" in normalized
-            or "authentication" in normalized
-            or "unauthorized" in normalized
-        ):
-
-            raise ProviderAuthenticationError(
-                f"Twelve Data authentication failed: "
-                f"{message}"
-            )
-
-        # --------------------------------------------------
         # Rate Limit / Quota
         # --------------------------------------------------
-
         if (
             status_code == 429
             or "rate limit" in normalized
@@ -217,70 +187,100 @@ class TwelveDataProvider(BaseProvider):
             or "quota" in normalized
             or "credits" in normalized
         ):
-
             raise ProviderRateLimitError(
-                f"Twelve Data rate limit/quota reached: "
-                f"{message}"
+                "Twelve Data rate limit or quota reached."
             )
 
         # --------------------------------------------------
         # Plan Restriction
         # --------------------------------------------------
-
         if (
             "available starting with" in normalized
             or "grow or venture plan" in normalized
             or "upgrade" in normalized
-            or "plan" in normalized
-            and (
-                "required" in normalized
-                or "available" in normalized
-                or "restricted" in normalized
+            or (
+                "plan" in normalized
+                and any(
+                    term in normalized
+                    for term in (
+                        "required",
+                        "available",
+                        "restricted",
+                    )
+                )
             )
         ):
-
             raise ProviderPlanRestrictedError(
-                f"Twelve Data plan restriction: "
-                f"{message}"
+                "Twelve Data account plan does not permit "
+                "this request."
+            )
+
+        # --------------------------------------------------
+        # Authentication
+        # --------------------------------------------------
+        if (
+            status_code == 401
+            or "apikey" in normalized
+            or "api key" in normalized
+            or "authentication" in normalized
+            or "unauthorized" in normalized
+            or (
+                status_code == 403
+                and not (
+                    "available starting with" in normalized
+                    or "grow or venture plan" in normalized
+                    or "upgrade" in normalized
+                    or (
+                        "plan" in normalized
+                        and any(
+                            term in normalized
+                            for term in (
+                                "required",
+                                "available",
+                                "restricted",
+                            )
+                        )
+                    )
+                )
+            )
+        ):
+            raise ProviderAuthenticationError(
+                "Twelve Data authentication failed."
             )
 
         # --------------------------------------------------
         # Invalid / Unsupported Symbol
         # --------------------------------------------------
-
         if (
             "symbol" in normalized
-            and (
-                "invalid" in normalized
-                or "not found" in normalized
-                or "missing" in normalized
-                or "unsupported" in normalized
+            and any(
+                term in normalized
+                for term in (
+                    "invalid",
+                    "not found",
+                    "missing",
+                    "unsupported",
+                )
             )
         ):
-
             raise ProviderMarketUnsupportedError(
-                f"Twelve Data market/symbol error: "
-                f"{message}"
+                "Twelve Data does not support the requested "
+                "market or symbol."
             )
 
         # --------------------------------------------------
         # Provider Availability
         # --------------------------------------------------
-
         if status_code >= 500:
-
             raise ProviderUnavailableError(
-                f"Twelve Data server error "
-                f"{status_code}: {message}"
+                f"Twelve Data server error ({status_code})."
             )
 
         # --------------------------------------------------
         # Generic Provider Error
         # --------------------------------------------------
-
         raise ProviderUnavailableError(
-            f"Twelve Data API error "
-            f"{code}: {message}"
+            f"Twelve Data request failed (error code: {code})."
         )
 
     # ==================================================
@@ -354,7 +354,7 @@ class TwelveDataProvider(BaseProvider):
         except requests.RequestException as error:
 
             raise ProviderConnectionError(
-                f"Twelve Data request failed: {error}"
+                "Twelve Data request failed."
             ) from error
 
         # --------------------------------------------------
@@ -445,8 +445,7 @@ class TwelveDataProvider(BaseProvider):
             ) as error:
 
                 raise ProviderDataError(
-                    f"Invalid Twelve Data candle: "
-                    f"{item}"
+                    "Twelve Data returned an invalid candle."
                 ) from error
 
         return candles

@@ -31,6 +31,7 @@ from backend.scheduler.scheduler_manager import SchedulerManager
 from backend.session.scanner_session import ScannerSession
 
 from backend.metrics.performance_metrics import PerformanceMetrics
+from backend.logger import logger
 
 
 def main():
@@ -318,12 +319,12 @@ def main():
 
     report = ReportManager()
 
-    report.print_scan_report(
+    print_reports_safely(
+        report,
         candles,
         analyzer,
+        scan_result,
     )
-
-    report.print_database_report()
 
     # ==================================================
     # SCHEDULER SUMMARY
@@ -525,6 +526,36 @@ def main():
         "\nAndy Scanner execution completed."
     )
 
+
+
+def print_reports_safely(report, candles, analyzer, scan_result):
+    """Run reports independently so one reporting failure does not skip the next."""
+    for report_name, operation in (
+        (
+            "scan report",
+            lambda: report.print_scan_report(
+                candles,
+                analyzer,
+                scan_result=scan_result,
+            ),
+        ),
+        (
+            "database report",
+            report.print_database_report,
+        ),
+    ):
+        try:
+            operation()
+        except Exception as error:
+            message = (
+                f"Unable to render {report_name}: "
+                f"{type(error).__name__}"
+            )
+            try:
+                logger.error_log(message)
+            except Exception:
+                pass
+            print(message)
 
 if __name__ == "__main__":
     main()

@@ -11,6 +11,7 @@ import time
 
 from backend.provider_exceptions import (
     ProviderConnectionError,
+    ProviderOperationTimeoutError,
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
@@ -53,6 +54,11 @@ class ProviderRetry:
             try:
 
                 return operation()
+
+            except ProviderOperationTimeoutError:
+                # The timed-out worker may still be running.
+                # Retrying could start overlapping provider work.
+                raise
 
             except self.RETRYABLE_ERRORS as error:
 

@@ -60,6 +60,16 @@ class ProviderTimeoutError(ProviderError):
     pass
 
 
+
+class ProviderOperationTimeoutError(ProviderTimeoutError):
+    """
+    Raised when the timeout wrapper expires while its
+    worker is still running. Retrying could overlap work.
+    """
+
+    pass
+
+
 class ProviderDataError(ProviderError):
     """
     Raised when invalid or empty

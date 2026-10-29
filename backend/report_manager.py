@@ -39,9 +39,14 @@ class ReportManager:
     # Scanner Report
     # ==================================================
 
-    def print_scan_report(self, candles, analyzer):
+    def print_scan_report(
+        self,
+        candles,
+        analyzer,
+        scan_result=None,
+    ):
         """
-        Print the complete scanner report.
+        Print the analysis, original signal, final decision, and candles.
         """
 
         print_analysis(analyzer)
@@ -56,6 +61,26 @@ class ReportManager:
         print_fvg(analyzer)
         print_liquidity(analyzer)
         print_signal(analyzer)
+
+        if scan_result is not None:
+            summary = scan_result.summary()
+
+            print("\\n========== Final Trade Decision ==========")
+            print(f"Market              : {summary['market']}")
+            print(f"Timeframe           : {summary['timeframe']}")
+            print(f"Original Signal     : {summary['signal']}")
+            print(f"Signal Confidence   : {summary['confidence']}%")
+            print(f"Final Decision      : {summary['decision']}")
+            print(f"Decision Confidence : {summary['decision_confidence']}%")
+            print(f"Entry               : {summary['entry']}")
+            print(f"Stop Loss           : {summary['stop_loss']}")
+            print(f"Take Profit         : {summary['take_profit']}")
+            print(f"Risk/Reward         : {summary['risk_reward']}")
+            print(f"Setup Valid         : {summary['setup_valid']}")
+            print(f"Risk Valid          : {summary['risk_valid']}")
+            print(f"Decision Reason     : {summary['decision_reason']}")
+            print("==========================================")
+
         print_candles(candles)
 
     # ==================================================
